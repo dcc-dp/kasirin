@@ -24,6 +24,7 @@
     "dotenv": "^17.4.2",
     "drizzle-orm": "^1.0.0-rc.4",
     "flatpickr": "^4.6.13",
+    "lucide-react": "^1.24.0",
     "mysql2": "^3.22.6",
     "next": "^16.1.6",
     "react": "^19.2.0",
