@@ -5,11 +5,14 @@ import Label from "@/components/form/Label";
 import Button from "@/components/ui/button/Button";
 import { ChevronLeftIcon, EyeCloseIcon, EyeIcon } from "@/icons";
 import Link from "next/link";
-import React, { useState } from "react";
+import React, { useState, useActionState } from "react";
+import { login } from "@/actions/auth";
 
 export default function SignInForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [isChecked, setIsChecked] = useState(false);
+  const [state, formAction, isPending] = useActionState(login, null as any);
+
   return (
     <div className="flex flex-col flex-1 lg:w-1/2 w-full">
       <div className="w-full max-w-md sm:pt-10 mx-auto mb-5">
@@ -84,13 +87,18 @@ export default function SignInForm() {
                 </span>
               </div>
             </div>
-            <form>
+            <form action={formAction}>
+              {state?.error && (
+                <div className="mb-4 text-sm text-red-500 bg-red-50 dark:bg-red-900/30 p-3 rounded-lg">
+                  {state.error}
+                </div>
+              )}
               <div className="space-y-6">
                 <div>
                   <Label>
-                    Email <span className="text-error-500">*</span>{" "}
+                    Username <span className="text-error-500">*</span>{" "}
                   </Label>
-                  <Input placeholder="info@gmail.com" type="email" />
+                  <Input placeholder="Enter your username" type="text" name="name" />
                 </div>
                 <div>
                   <Label>
@@ -100,6 +108,7 @@ export default function SignInForm() {
                     <Input
                       type={showPassword ? "text" : "password"}
                       placeholder="Enter your password"
+                      name="password"
                     />
                     <span
                       onClick={() => setShowPassword(!showPassword)}
@@ -120,16 +129,10 @@ export default function SignInForm() {
                       Keep me logged in
                     </span>
                   </div>
-                  <Link
-                    href="/reset-password"
-                    className="text-sm text-brand-500 hover:text-brand-600 dark:text-brand-400"
-                  >
-                    Forgot password?
-                  </Link>
                 </div>
                 <div>
-                  <Button className="w-full" size="sm">
-                    Sign in
+                  <Button className="w-full" size="sm" type="submit" disabled={isPending}>
+                    {isPending ? "Signing in..." : "Sign in"}
                   </Button>
                 </div>
               </div>

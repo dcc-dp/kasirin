@@ -50,6 +50,7 @@ export const role_permissions = mysqlTable("role_permissions", {
   role_id: int().notNull(),
   menu_id: int().notNull(),
   can_read: boolean().notNull().default(false),
+  can_create: boolean().notNull().default(false),
   can_update: boolean().notNull().default(false),
   can_delete: boolean().notNull().default(false),
   can_report: boolean().notNull().default(false),

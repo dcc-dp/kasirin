@@ -1,33 +1,84 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Plus, MoreHorizontal, Link2, LayoutGrid, ChevronRight, Eye, FolderTree, Trash2 } from "lucide-react";
-
-// Data simulasi internal agar UI langsung terisi data
-const contohDataMenu = [
-  { id: 1, name: "Dashboard Utama", path: "/admin/dashboard", icon: "LayoutGrid", parent_id: null, permission_path: "dashboard.read" },
-  { id: 2, name: "Manajemen Hak Akses (RBAC)", path: "/admin/rbac", icon: "FolderTree", parent_id: null, permission_path: "rbac.read" },
-  { id: 3, name: "Daftar Role", path: "/admin/rbac/roles", icon: "ChevronRight", parent_id: 2, permission_path: "roles.read" },
-  { id: 4, name: "Pengaturan Menu", path: "/admin/rbac/menus", icon: "ChevronRight", parent_id: 2, permission_path: "menus.read" },
-  { id: 5, name: "Manajemen Produk", path: "/admin/products", icon: "LayoutGrid", parent_id: null, permission_path: "products.read" },
-];
+import { createPortal } from "react-dom";
+import { Plus, MoreHorizontal, Link2, LayoutGrid, ChevronRight, Eye, FolderTree, Trash2, Edit, AlertTriangle } from "lucide-react";
+import { getMenus, createMenu, updateMenu, deleteMenu } from "@/actions/rbac";
 
 export default function MenusTab() {
-  const [menus, setMenus] = useState<any[]>(contohDataMenu);
+  const [menus, setMenus] = useState<any[]>([]);
   const [activeDropdownId, setActiveDropdownId] = useState<number | null>(null);
+  
+  // Modal state
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
+  const [formData, setFormData] = useState({ name: "", path: "", icon: "", parent_id: "" });
 
   useEffect(() => {
+    loadMenus();
     const handleOutsideClick = () => setActiveDropdownId(null);
     window.addEventListener("click", handleOutsideClick);
     return () => window.removeEventListener("click", handleOutsideClick);
   }, []);
 
+  const loadMenus = async () => {
+    const data = await getMenus();
+    setMenus(data);
+  };
+
   const rootMenus = menus.filter(menu => !menu.parent_id);
 
-  const handleDeleteMenu = (id: number) => {
-    if (!confirm("Apakah Anda yakin ingin menghapus menu ini?")) return;
-    setMenus(menus.filter(m => m.id !== id));
+  const confirmDelete = (id: number) => {
+    setDeleteConfirmId(id);
     setActiveDropdownId(null);
+  };
+
+  const executeDelete = async () => {
+    if (deleteConfirmId) {
+      await deleteMenu(deleteConfirmId);
+      await loadMenus();
+      setDeleteConfirmId(null);
+    }
+  };
+
+  const handleOpenEdit = (menu: any) => {
+    setFormData({
+      name: menu.name,
+      path: menu.path,
+      icon: menu.icon || "",
+      parent_id: menu.parent_id ? menu.parent_id.toString() : "",
+    });
+    setEditingId(menu.id);
+    setIsModalOpen(true);
+    setActiveDropdownId(null);
+  };
+
+  const handleOpenCreate = () => {
+    setFormData({ name: "", path: "", icon: "", parent_id: "" });
+    setEditingId(null);
+    setIsModalOpen(true);
+  };
+
+  const handleSaveMenu = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const data = {
+      name: formData.name,
+      path: formData.path,
+      icon: formData.icon || undefined,
+      parent_id: formData.parent_id ? parseInt(formData.parent_id) : null,
+    };
+    
+    if (editingId) {
+      await updateMenu(editingId, data);
+    } else {
+      await createMenu(data);
+    }
+    
+    setIsModalOpen(false);
+    setFormData({ name: "", path: "", icon: "", parent_id: "" });
+    setEditingId(null);
+    await loadMenus();
   };
 
   return (
@@ -36,7 +87,7 @@ export default function MenusTab() {
       {/* ATASAN / TOMBOL TAMBAH */}
       <div className="flex justify-end">
         <button 
-          onClick={() => alert("Simulasi Tambah Menu Baru")}
+          onClick={handleOpenCreate}
           className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-opacity-90 text-white px-4 py-2.5 rounded font-medium text-sm transition-colors shadow-sm cursor-pointer"
         >
           <Plus size={16} />
@@ -44,7 +95,7 @@ export default function MenusTab() {
         </button>
       </div>
 
-      {/* STRUKTUR POHON MENU (Sudah Di-Bypass Tembak Kode Warna Gelap TailAdmin) */}
+      {/* STRUKTUR POHON MENU */}
       <div className="rounded-sm border border-stroke bg-white shadow-default dark:border-[#2E3A47] dark:bg-[#24303F] overflow-visible">
         
         {/* Header Bagian Dalam Tabel */}
@@ -93,8 +144,14 @@ export default function MenusTab() {
                     {activeDropdownId === rootMenu.id && (
                       <div className="absolute right-0 mt-2 w-40 bg-white dark:bg-[#24303F] border border-stroke dark:border-[#2E3A47] rounded shadow-lg z-30 py-1">
                         <button
-                          onClick={() => handleDeleteMenu(rootMenu.id)}
-                          className="w-full text-left px-4 py-2 text-xs text-red-600 dark:text-red-400 hover:bg-gray-2 dark:hover:bg-[#313D4A] flex items-center gap-2 font-medium cursor-pointer"
+                          onClick={() => handleOpenEdit(rootMenu)}
+                          className="w-full text-left px-4 py-2 text-xs text-blue-600 dark:text-blue-400 hover:bg-gray-2 dark:hover:bg-[#313D4A] flex items-center gap-2 font-medium cursor-pointer"
+                        >
+                          <Edit size={14} /> Edit Menu
+                        </button>
+                        <button
+                          onClick={() => confirmDelete(rootMenu.id)}
+                          className="w-full text-left px-4 py-2 text-xs text-red-600 dark:text-red-400 hover:bg-gray-2 dark:hover:bg-[#313D4A] flex items-center gap-2 font-medium cursor-pointer border-t border-stroke dark:border-[#2E3A47]"
                         >
                           <Trash2 size={14} /> Hapus Menu
                         </button>
@@ -131,8 +188,14 @@ export default function MenusTab() {
                           {activeDropdownId === sub.id && (
                             <div className="absolute right-0 mt-1 w-40 bg-white dark:bg-[#24303F] border border-stroke dark:border-[#2E3A47] rounded shadow-lg z-30 py-1">
                               <button
-                                onClick={() => handleDeleteMenu(sub.id)}
-                                className="w-full text-left px-4 py-2 text-xs text-red-600 dark:text-red-400 hover:bg-gray-2 dark:hover:bg-[#313D4A] flex items-center gap-2 font-medium cursor-pointer"
+                                onClick={() => handleOpenEdit(sub)}
+                                className="w-full text-left px-4 py-2 text-xs text-blue-600 dark:text-blue-400 hover:bg-gray-2 dark:hover:bg-[#313D4A] flex items-center gap-2 font-medium cursor-pointer"
+                              >
+                                <Edit size={14} /> Edit Sub-Menu
+                              </button>
+                              <button
+                                onClick={() => confirmDelete(sub.id)}
+                                className="w-full text-left px-4 py-2 text-xs text-red-600 dark:text-red-400 hover:bg-gray-2 dark:hover:bg-[#313D4A] flex items-center gap-2 font-medium cursor-pointer border-t border-stroke dark:border-[#2E3A47]"
                               >
                                 <Trash2 size={14} /> Hapus Sub-Menu
                               </button>
@@ -149,6 +212,100 @@ export default function MenusTab() {
           })}
         </div>
       </div>
+
+
+      {isModalOpen && typeof window !== "undefined" && createPortal(
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-sm border border-stroke bg-white p-6 shadow-default dark:border-[#2E3A47] dark:bg-[#24303F] relative">
+            <button onClick={() => setIsModalOpen(false)} className="absolute right-4 top-4 text-gray-400 hover:text-black dark:hover:text-white cursor-pointer">&times;</button>
+            <div className="border-b border-stroke pb-4 dark:border-[#2E3A47]">
+              <h3 className="text-lg font-semibold text-black dark:text-white">
+                {editingId ? "Edit Menu" : "Registrasi Menu Baru"}
+              </h3>
+            </div>
+            
+            <form onSubmit={handleSaveMenu} className="mt-4 space-y-4">
+              <div>
+                <label className="mb-2 block text-black dark:text-white text-xs font-medium">Nama Menu</label>
+                <input 
+                  type="text" 
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="w-full rounded border border-stroke bg-transparent py-2 px-4 text-black outline-hidden transition focus:border-primary dark:border-[#2E3A47] dark:bg-[#1A222C] dark:text-white" 
+                  required 
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-black dark:text-white text-xs font-medium">Rute Halaman (Path)</label>
+                <input 
+                  type="text" 
+                  value={formData.path}
+                  onChange={(e) => setFormData({ ...formData, path: e.target.value })}
+                  className="w-full rounded border border-stroke bg-transparent py-2 px-4 text-black outline-hidden transition focus:border-primary dark:border-[#2E3A47] dark:bg-[#1A222C] dark:text-white" 
+                  required 
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-black dark:text-white text-xs font-medium">Nama Icon (Lucide / SVG)</label>
+                <input 
+                  type="text" 
+                  value={formData.icon}
+                  onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
+                  className="w-full rounded border border-stroke bg-transparent py-2 px-4 text-black outline-hidden transition focus:border-primary dark:border-[#2E3A47] dark:bg-[#1A222C] dark:text-white" 
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-black dark:text-white text-xs font-medium">Parent Menu</label>
+                <select 
+                  value={formData.parent_id}
+                  onChange={(e) => setFormData({ ...formData, parent_id: e.target.value })}
+                  className="w-full rounded border border-stroke bg-transparent py-2 px-4 text-black outline-hidden transition focus:border-primary dark:border-[#2E3A47] dark:bg-[#1A222C] dark:text-white"
+                >
+                  <option value="">-- Tidak ada (Root Menu) --</option>
+                  {rootMenus.map(rm => (
+                    <option key={rm.id} value={rm.id}>{rm.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-stroke dark:border-[#2E3A47]">
+                <button type="button" onClick={() => setIsModalOpen(false)} className="rounded border border-stroke py-2 px-4 font-medium text-black hover:shadow-1 dark:border-[#2E3A47] dark:text-white text-xs cursor-pointer">Batal</button>
+                <button type="submit" className="rounded bg-blue-600 py-2 px-4 font-medium text-white hover:bg-opacity-90 text-xs cursor-pointer">Simpan Menu</button>
+              </div>
+            </form>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {deleteConfirmId && typeof window !== "undefined" && createPortal(
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-sm rounded-sm border border-stroke bg-white p-6 shadow-default dark:border-[#2E3A47] dark:bg-[#24303F] text-center">
+            <div className="mx-auto flex h-15 w-15 items-center justify-center rounded-full bg-red-100 text-red-600 dark:bg-red-500/20 dark:text-red-400 mb-4">
+              <AlertTriangle size={32} />
+            </div>
+            <h3 className="mb-2 text-xl font-bold text-black dark:text-white">Hapus Data</h3>
+            <p className="mb-6 text-sm text-gray-500 dark:text-gray-400">
+              Apakah Anda yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.
+            </p>
+            <div className="flex justify-center gap-3">
+              <button 
+                onClick={() => setDeleteConfirmId(null)} 
+                className="w-full rounded border border-stroke py-2.5 font-medium text-black hover:shadow-1 dark:border-[#2E3A47] dark:text-white text-sm cursor-pointer"
+              >
+                Batal
+              </button>
+              <button 
+                onClick={executeDelete}
+                className="w-full rounded bg-red-600 py-2.5 font-medium text-white hover:bg-opacity-90 text-sm cursor-pointer"
+              >
+                Ya, Hapus
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
     </div>
   );
