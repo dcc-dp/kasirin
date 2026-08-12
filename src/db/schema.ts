@@ -159,7 +159,8 @@ export const members = mysqlTable("members", {
   id: int().primaryKey().autoincrement(),
   nama: varchar({ length: 255 }).notNull(),
   phone: varchar({ length: 255 }).notNull(),
-  member_point: int().notNull(),
+  address: longtext().notNull(),
+  poin: int().notNull(),
   created_at: datetime()
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),
@@ -168,31 +169,11 @@ export const members = mysqlTable("members", {
     .notNull(),
 });
 
-export const customers = mysqlTable("customers", {
-  id: int().primaryKey().autoincrement(),
-  nama: varchar({ length: 255 }).notNull(),
-  phone: varchar({ length: 255 }).notNull(),
-  address: longtext().notNull(),
-  member_id: int().notNull(),
-  created_at: datetime()
-    .default(sql`CURRENT_TIMESTAMP`)
-    .notNull(),
-  updated_at: datetime()
-    .default(sql`CURRENT_TIMESTAMP`)
-    .notNull(),
-},
-  (table) => ({
-    member_id_fk: foreignKey({
-      columns: [table.member_id],
-      foreignColumns: [members.id],
-    }),
-  })
-);
-
 export const transactions = mysqlTable("transactions", {
   id: int().primaryKey().autoincrement(),
   invoice_number: varchar({ length: 255 }).notNull(),
-  customer_id: int().notNull(),
+  member_id: int().notNull(),
+  point_gained: int(),
   transaction_date: datetime(),
   subtotal: int().notNull(),
   discount: int().notNull(),
@@ -210,9 +191,9 @@ export const transactions = mysqlTable("transactions", {
     .notNull(),
 },
   (table) => ({
-    customer_id_fk: foreignKey({
-      columns: [table.customer_id],
-      foreignColumns: [customers.id],
+    member_id_fk: foreignKey({
+      columns: [table.member_id],
+      foreignColumns: [members.id],
     }),
   })
 );
@@ -221,9 +202,10 @@ export const transaction_details = mysqlTable("transaction_details", {
   id: int().primaryKey().autoincrement(),
   transaction_id: int().notNull(),
   product_id: int().notNull(),
+  name: varchar({ length: 255 }).notNull(),
+  description: longtext().notNull(),
+  selling_price: int().notNull(),
   quantity: int().notNull(),
-  stock_before: int().notNull(),
-  stock_after: int().notNull(),
   subtotal: int().notNull(),
   created_at: datetime()
     .default(sql`CURRENT_TIMESTAMP`)
@@ -241,35 +223,6 @@ export const transaction_details = mysqlTable("transaction_details", {
       columns: [table.product_id],
       foreignColumns: [products.id],
     }),
-  })
-);
-
-
-export const stocks_logs = mysqlTable("stocks_logs", {
-  id: int().primaryKey().autoincrement(),
-  product_id: int().notNull(),
-  user_id: int().notNull(),
-  type: mysqlEnum("type", ["in", "out", "adjustment"]).notNull(),
-  quantity: int().notNull(),
-  stock_before: int().notNull(),
-  stock_after: int().notNull(),
-  note: longtext().notNull(),
-  created_at: datetime()
-    .default(sql`CURRENT_TIMESTAMP`)
-    .notNull(),
-  updated_at: datetime()
-    .default(sql`CURRENT_TIMESTAMP`)
-    .notNull(),
-},
-  (table) => ({
-    product_id_fk: foreignKey({
-      columns: [table.product_id],
-      foreignColumns: [products.id],
-    }),
-    user_id_fk: foreignKey({
-      columns: [table.user_id],
-      foreignColumns: [users.id],
-    })
   })
 );
 
@@ -303,8 +256,11 @@ export const purchase_details = mysqlTable("purchase_details", {
   id: int().primaryKey().autoincrement(),
   purchase_id: int().notNull(),
   product_id: int().notNull(),
+  name: varchar({ length: 255 }).notNull(),
+  description: longtext().notNull(),
+  purchase_price: int().notNull(),
   price: int().notNull(),
-  qty: int().notNull(),
+  quantity: int().notNull(),
   subtotal: int().notNull(),
   created_at: datetime()
     .default(sql`CURRENT_TIMESTAMP`)
