@@ -2,7 +2,7 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation"; // DIUBAH: Hapus useSearchParams dari sini
+import { usePathname } from "next/navigation";
 import { useSidebar } from "../context/SidebarContext";
 import {
   BoxCubeIcon,
@@ -16,104 +16,62 @@ import {
   UserCircleIcon,
 } from "../icons/index";
 import SidebarWidget from "./SidebarWidget";
+import { getSidebarMenus } from "@/actions/menu";
 
 type NavItem = {
   name: string;
-  icon: React.ReactNode;
+  icon?: React.ReactNode;
+  iconName?: string | null;
   path?: string;
   subItems?: { name: string; path: string }[];
 };
 
-// =========================================================================
-// MENU UTAMA (Sudah rapi menggunakan rute folder)
-// =========================================================================
-const navItems: NavItem[] = [
-  {
-    icon: <GridIcon />,
-    name: "Dashboard",
-    path: "/admin/dashboard",
-  },
-  {
-    icon: <UserCircleIcon />, 
-    name: "Manajemen Role",
-    path: "/admin/rbac/roles",
-  },
-  {
-    icon: <ListIcon />,
-    name: "Manajemen Menu",
-    path: "/admin/rbac/menus",
-  },
-  {
-    icon: <PageIcon />,
-    name: "Matriks Otoritas",
-    path: "/admin/rbac/permissions",
-  },
-  {
-    icon: <BoxCubeIcon />,
-    name: "Manajemen Produk",
-    subItems: [
-      { name: "Daftar Produk", path: "/admin/products" },
-      { name: "Riwayat Stok (Log)", path: "/admin/products/stock-logs" },
-    ],
-  },
-  {
-    icon: <TableIcon />,
-    name: "Transaksi POS",
-    subItems: [
-      { name: "Layar Kasir (POS)", path: "/kasir" },
-      { name: "Invoice Penjualan", path: "/admin/transactions" },
-      { name: "Restock (Pembelian)", path: "/admin/purchases" },
-    ],
-  },
-];
-
-const othersItems: NavItem[] = [
-  {
-    icon: <UserCircleIcon />,
-    name: "Mitra & Kontak",
-    subItems: [
-      { name: "Pelanggan / Member", path: "/admin/customers" },
-      { name: "Data Supplier", path: "/admin/suppliers" },
-    ],
-  },
-  {
-    icon: <PlugInIcon />,
-    name: "Pengaturan Toko",
-    path: "/admin/settings",
-  },
-];
+const iconMap: Record<string, React.ReactNode> = {
+  "GridIcon": <GridIcon />,
+  "UserCircleIcon": <UserCircleIcon />,
+  "ListIcon": <ListIcon />,
+  "PageIcon": <PageIcon />,
+  "BoxCubeIcon": <BoxCubeIcon />,
+  "TableIcon": <TableIcon />,
+  "PlugInIcon": <PlugInIcon />,
+};
 
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
   const pathname = usePathname();
 
+  const [navItems, setNavItems] = useState<NavItem[]>([]);
   const [openSubmenu, setOpenSubmenu] = useState<{ type: "main" | "others"; index: number } | null>(null);
   const [subMenuHeight, setSubMenuHeight] = useState<Record<string, number>>({});
   const subMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  // DIUBAH: Logika deteksi menu aktif disederhanakan (Clean & Bebas Bug Next.js)
+  useEffect(() => {
+    async function loadMenus() {
+      const menus = await getSidebarMenus();
+      setNavItems(menus);
+    }
+    loadMenus();
+  }, []);
+
   const isActive = useCallback((path: string) => {
     return pathname === path;
   }, [pathname]);
 
   useEffect(() => {
     let submenuMatched = false;
-    ["main", "others"].forEach((menuType) => {
-      const items = menuType === "main" ? navItems : othersItems;
-      items.forEach((nav, index) => {
-        if (nav.subItems) {
-          nav.subItems.forEach((subItem) => {
-            if (isActive(subItem.path)) {
-              setOpenSubmenu({ type: menuType as "main" | "others", index });
-              submenuMatched = true;
-            }
-          });
-        }
-      });
+    navItems.forEach((nav, index) => {
+      if (nav.subItems) {
+        nav.subItems.forEach((subItem) => {
+          if (isActive(subItem.path)) {
+            setOpenSubmenu({ type: "main", index });
+            submenuMatched = true;
+          }
+        });
+      }
     });
 
     if (!submenuMatched) setOpenSubmenu(null);
-  }, [pathname, isActive]);
+  }, [pathname, isActive, navItems]);
 
   useEffect(() => {
     if (openSubmenu !== null) {
@@ -145,7 +103,7 @@ const AppSidebar: React.FC = () => {
               } cursor-pointer ${!isExpanded && !isHovered ? "lg:justify-center" : "lg:justify-start"}`}
             >
               <span className={`${openSubmenu?.type === menuType && openSubmenu?.index === index ? "menu-item-icon-active" : "menu-item-icon-inactive"}`}>
-                {nav.icon}
+                {nav.iconName ? iconMap[nav.iconName] : nav.icon ? nav.icon : <HorizontaLDots />}
               </span>
               {(isExpanded || isHovered || isMobileOpen) && <span className="menu-item-text">{nav.name}</span>}
               {(isExpanded || isHovered || isMobileOpen) && (
@@ -156,7 +114,7 @@ const AppSidebar: React.FC = () => {
             nav.path && (
               <Link href={nav.path} className={`menu-item group ${isActive(nav.path) ? "menu-item-active" : "menu-item-inactive"}`}>
                 <span className={`${isActive(nav.path) ? "menu-item-icon-active" : "menu-item-icon-inactive"}`}>
-                  {nav.icon}
+                  {nav.iconName ? iconMap[nav.iconName] : nav.icon ? nav.icon : <HorizontaLDots />}
                 </span>
                 {(isExpanded || isHovered || isMobileOpen) && <span className="menu-item-text">{nav.name}</span>}
               </Link>
@@ -208,15 +166,9 @@ const AppSidebar: React.FC = () => {
           <div className="flex flex-col gap-4">
             <div>
               <h2 className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${!isExpanded && !isHovered ? "lg:justify-center" : "justify-start"}`}>
-                {isExpanded || isHovered || isMobileOpen ? "Operasional POS" : <HorizontaLDots />}
+                {isExpanded || isHovered || isMobileOpen ? "Menu" : <HorizontaLDots />}
               </h2>
               {renderMenuItems(navItems, "main")}
-            </div>
-            <div>
-              <h2 className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${!isExpanded && !isHovered ? "lg:justify-center" : "justify-start"}`}>
-                {isExpanded || isHovered || isMobileOpen ? "Pengaturan & Sistem" : <HorizontaLDots />}
-              </h2>
-              {renderMenuItems(othersItems, "others")}
             </div>
           </div>
         </nav>
