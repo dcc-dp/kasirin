@@ -50,6 +50,7 @@ export const role_permissions = mysqlTable("role_permissions", {
   role_id: int().notNull(),
   menu_id: int().notNull(),
   can_read: boolean().notNull().default(false),
+  can_create: boolean().notNull().default(false),
   can_update: boolean().notNull().default(false),
   can_delete: boolean().notNull().default(false),
   can_report: boolean().notNull().default(false),
@@ -134,6 +135,7 @@ export const units = mysqlTable("units", {
 export const products = mysqlTable("products", {
   id: int().primaryKey().autoincrement(),
   category_id: int().notNull(),
+  unit_id: int().notNull(),
   barcode: varchar({ length: 255 }).notNull(),
   name: varchar({ length: 255 }).notNull(),
   description: longtext().notNull(),
@@ -151,6 +153,10 @@ export const products = mysqlTable("products", {
     category_fk: foreignKey({
       columns: [table.category_id],
       foreignColumns: [categoris.id],
+    }),
+    unit_fk: foreignKey({
+      columns: [table.unit_id],
+      foreignColumns: [units.id],
     }),
   }),
 );
