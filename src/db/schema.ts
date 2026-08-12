@@ -135,6 +135,7 @@ export const units = mysqlTable("units", {
 export const products = mysqlTable("products", {
   id: int().primaryKey().autoincrement(),
   category_id: int().notNull(),
+  unit_id: int().notNull(),
   barcode: varchar({ length: 255 }).notNull(),
   name: varchar({ length: 255 }).notNull(),
   description: longtext().notNull(),
@@ -152,6 +153,10 @@ export const products = mysqlTable("products", {
     category_fk: foreignKey({
       columns: [table.category_id],
       foreignColumns: [categoris.id],
+    }),
+    unit_fk: foreignKey({
+      columns: [table.unit_id],
+      foreignColumns: [units.id],
     }),
   }),
 );
