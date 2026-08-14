@@ -62,7 +62,7 @@ const navItems: NavItem[] = [
     subItems: [
       { name: "Layar Kasir (POS)", path: "/kasir" },
       { name: "Invoice Penjualan", path: "/admin/transactions" },
-      { name: "Restock (Pembelian)", path: "/admin/purchases" },
+      { name: "Restock (Pembelian)", path: "/admin/rbac/purchases" },
     ],
   },
 ];
