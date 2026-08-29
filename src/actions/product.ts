@@ -2,8 +2,19 @@
 
 import { eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+
 import { getDb } from "../db";
-import { categoris, products, units } from "../db/schema";
+
+import {
+  categoris,
+  products,
+  units,
+  stock_logs,
+} from "../db/schema";
+
+// ======================================================
+// GET PRODUCTS
+// ======================================================
 
 export async function getProducts() {
   const db = getDb();
@@ -19,8 +30,10 @@ export async function getProducts() {
       purchase_price: products.purchase_price,
       selling_price: products.selling_price,
       stock: products.stock,
+
       category_name: categoris.name,
       unit_name: units.name,
+
       created_at: products.created_at,
       updated_at: products.updated_at,
     })
@@ -35,6 +48,10 @@ export async function getProducts() {
     );
 }
 
+// ======================================================
+// GET PRODUCT OPTIONS
+// ======================================================
+
 export async function getProductOptions() {
   const db = getDb();
 
@@ -48,6 +65,10 @@ export async function getProductOptions() {
     units: unitList,
   };
 }
+
+// ======================================================
+// CREATE PRODUCT
+// ======================================================
 
 export async function createProduct(data: {
   category_id: number;
@@ -65,6 +86,10 @@ export async function createProduct(data: {
     const barcode = data.barcode.trim();
     const name = data.name.trim();
     const description = data.description.trim();
+
+    // ==================================================
+    // VALIDATION
+    // ==================================================
 
     if (!barcode) {
       return {
@@ -115,7 +140,10 @@ export async function createProduct(data: {
       };
     }
 
-    // Cek barcode
+    // ==================================================
+    // CEK BARCODE
+    // ==================================================
+
     const existingBarcode = await db
       .select()
       .from(products)
@@ -128,15 +156,52 @@ export async function createProduct(data: {
       };
     }
 
-    await db.insert(products).values({
-      category_id: data.category_id,
-      unit_id: data.unit_id,
-      barcode,
-      name,
-      description,
-      purchase_price: data.purchase_price,
-      selling_price: data.selling_price,
-      stock: data.stock,
+    // ==================================================
+    // TRANSACTION
+    // ==================================================
+
+    await db.transaction(async (tx) => {
+      const result = await tx
+        .insert(products)
+        .values({
+          category_id: data.category_id,
+          unit_id: data.unit_id,
+          barcode,
+          name,
+          description,
+          purchase_price: data.purchase_price,
+          selling_price: data.selling_price,
+          stock: data.stock,
+        });
+
+      // Ambil ID produk yang baru dibuat
+      const productId = Number(
+        (result as any)[0]?.insertId
+      );
+
+      // ==================================================
+      // CATAT STOK AWAL
+      // ==================================================
+
+      if (data.stock > 0) {
+        await tx.insert(stock_logs).values({
+          product_id: productId,
+
+          type: "in",
+
+          quantity: data.stock,
+
+          stock_before: 0,
+          stock_after: data.stock,
+
+          reference_type: "product",
+          reference_id: productId,
+
+          description: `Stok awal produk "${name}"`,
+
+          user_id: null,
+        });
+      }
     });
 
     revalidatePath("/admin/produk");
@@ -154,6 +219,10 @@ export async function createProduct(data: {
     };
   }
 }
+
+// ======================================================
+// UPDATE PRODUCT
+// ======================================================
 
 export async function updateProduct(
   id: number,
@@ -175,6 +244,10 @@ export async function updateProduct(
     const name = data.name.trim();
     const description = data.description.trim();
 
+    // ==================================================
+    // VALIDATION
+    // ==================================================
+
     if (!barcode) {
       return {
         success: false,
@@ -224,38 +297,114 @@ export async function updateProduct(
       };
     }
 
-    // Cek barcode dipakai produk lain
+    // ==================================================
+    // CEK BARCODE
+    // ==================================================
+
     const existingBarcode = await db
       .select()
       .from(products)
       .where(eq(products.barcode, barcode));
 
     const duplicate = existingBarcode.find(
-      (product: typeof existingBarcode[number]) =>
-        product.id !== id
+      (product) => product.id !== id
     );
 
     if (duplicate) {
       return {
         success: false,
-        message: "Barcode tersebut sudah digunakan produk lain.",
+        message:
+          "Barcode tersebut sudah digunakan produk lain.",
       };
     }
 
-    await db
-      .update(products)
-      .set({
-        category_id: data.category_id,
-        unit_id: data.unit_id,
-        barcode,
-        name,
-        description,
-        purchase_price: data.purchase_price,
-        selling_price: data.selling_price,
-        stock: data.stock,
-        updated_at: new Date(),
-      })
+    // ==================================================
+    // AMBIL PRODUK LAMA
+    // ==================================================
+
+    const existingProduct = await db
+      .select()
+      .from(products)
       .where(eq(products.id, id));
+
+    if (existingProduct.length === 0) {
+      return {
+        success: false,
+        message: "Produk tidak ditemukan.",
+      };
+    }
+
+    const oldProduct = existingProduct[0];
+
+    const stockBefore = oldProduct.stock;
+    const stockAfter = data.stock;
+
+    const stockDifference =
+      stockAfter - stockBefore;
+
+    // ==================================================
+    // TRANSACTION
+    // ==================================================
+
+    await db.transaction(async (tx) => {
+      // Update produk
+      await tx
+        .update(products)
+        .set({
+          category_id: data.category_id,
+          unit_id: data.unit_id,
+
+          barcode,
+          name,
+          description,
+
+          purchase_price:
+            data.purchase_price,
+
+          selling_price:
+            data.selling_price,
+
+          stock: data.stock,
+
+          updated_at: new Date(),
+        })
+        .where(eq(products.id, id));
+
+      // ==================================================
+      // STOCK LOG
+      // ==================================================
+
+      if (stockDifference !== 0) {
+        const type =
+          stockDifference > 0
+            ? "in"
+            : "out";
+
+        const quantity =
+          Math.abs(stockDifference);
+
+        await tx.insert(stock_logs).values({
+          product_id: id,
+
+          type,
+
+          quantity,
+
+          stock_before: stockBefore,
+          stock_after: stockAfter,
+
+          reference_type: "product",
+          reference_id: id,
+
+          description:
+            stockDifference > 0
+              ? `Penambahan stok produk "${name}"`
+              : `Pengurangan stok produk "${name}"`,
+
+          user_id: null,
+        });
+      }
+    });
 
     revalidatePath("/admin/produk");
 
@@ -273,11 +422,18 @@ export async function updateProduct(
   }
 }
 
+// ======================================================
+// DELETE PRODUCT
+// ======================================================
+
 export async function deleteProduct(id: number) {
   try {
     const db = getDb();
 
-    // Cek apakah produk sudah digunakan dalam transaksi
+    // ==================================================
+    // CEK TRANSACTION DETAILS
+    // ==================================================
+
     const transactionUsage = await db.execute(
       sql`
         SELECT COUNT(*) AS count
@@ -285,6 +441,10 @@ export async function deleteProduct(id: number) {
         WHERE product_id = ${id}
       `
     );
+
+    // ==================================================
+    // CEK PURCHASE DETAILS
+    // ==================================================
 
     const purchaseUsage = await db.execute(
       sql`
@@ -302,13 +462,20 @@ export async function deleteProduct(id: number) {
       (purchaseUsage[0] as any)?.count ?? 0
     );
 
-    if (transactionCount > 0 || purchaseCount > 0) {
+    if (
+      transactionCount > 0 ||
+      purchaseCount > 0
+    ) {
       return {
         success: false,
         message:
           "Produk tidak dapat dihapus karena sudah memiliki riwayat transaksi atau pembelian.",
       };
     }
+
+    // ==================================================
+    // DELETE
+    // ==================================================
 
     await db
       .delete(products)

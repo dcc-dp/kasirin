@@ -1,45 +1,86 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { History } from "lucide-react";
+import { useEffect, useState } from "react";
+
+import { getStockLogs } from "@/actions/stock-log";
 
 type StockLog = {
   id: number;
   product_id: number;
-  product_name: string;
-  type: string;
+
+  product_name: string | null;
+  barcode: string | null;
+
+  type: "in" | "out" | "adjustment";
+
   quantity: number;
+
   stock_before: number;
   stock_after: number;
+
+  reference_type: string | null;
+  reference_id: number | null;
+
+  description: string;
+
+  user_id: number | null;
+
   created_at: Date | string;
+  updated_at: Date | string;
 };
 
 export default function StockLogsTab() {
   const [logs, setLogs] = useState<StockLog[]>([]);
+
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadLogs();
-  }, []);
+  // ==================================================
+  // LOAD DATA
+  // ==================================================
 
   const loadLogs = async () => {
     try {
       setLoading(true);
 
-      // Nanti diganti dengan Server Action getStockLogs()
-      // const data = await getStockLogs();
-      // setLogs(data);
+      const data = await getStockLogs();
 
-      setLogs([]);
+      setLogs(data as StockLog[]);
     } catch (error) {
-      console.error("Gagal mengambil riwayat stok:", error);
+      console.error(
+        "Load stock logs error:",
+        error
+      );
+
+      alert(
+        "Gagal mengambil riwayat stok."
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  const formatDate = (date: Date | string) => {
-    return new Date(date).toLocaleString("id-ID", {
+  // ==================================================
+  // INITIAL LOAD
+  // ==================================================
+
+  useEffect(() => {
+    loadLogs();
+  }, []);
+
+  // ==================================================
+  // FORMAT DATE
+  // ==================================================
+
+  const formatDate = (
+    date: Date | string
+  ) => {
+    const value = new Date(date);
+
+    if (Number.isNaN(value.getTime())) {
+      return "-";
+    }
+
+    return value.toLocaleString("id-ID", {
       day: "2-digit",
       month: "short",
       year: "numeric",
@@ -48,20 +89,21 @@ export default function StockLogsTab() {
     });
   };
 
-  const getTypeLabel = (type: string) => {
-    switch (type.toLowerCase()) {
+  // ==================================================
+  // FORMAT TYPE
+  // ==================================================
+
+  const getTypeLabel = (
+    type: StockLog["type"]
+  ) => {
+    switch (type) {
       case "in":
-      case "masuk":
-      case "purchase":
         return "Stok Masuk";
 
       case "out":
-      case "keluar":
-      case "sale":
         return "Stok Keluar";
 
       case "adjustment":
-      case "penyesuaian":
         return "Penyesuaian";
 
       default:
@@ -69,180 +111,231 @@ export default function StockLogsTab() {
     }
   };
 
-  const getTypeClass = (type: string) => {
-    switch (type.toLowerCase()) {
-      case "in":
-      case "masuk":
-      case "purchase":
-        return "bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400";
-
-      case "out":
-      case "keluar":
-      case "sale":
-        return "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400";
-
-      default:
-        return "bg-gray-100 text-gray-700 dark:bg-gray-500/10 dark:text-gray-300";
-    }
-  };
+  // ==================================================
+  // RENDER
+  // ==================================================
 
   return (
-    <div className="rounded-sm border border-stroke bg-white px-5 pt-6 pb-2.5 shadow-default dark:border-[#2E3A47] dark:!bg-[#24303F] sm:px-7.5 xl:pb-1">
+    <div className="mx-auto max-w-7xl p-4 md:p-6 2xl:p-10">
 
-      {/* HEADER */}
-      <div className="flex justify-between items-center mb-6">
-        <h4 className="text-xl font-semibold text-black dark:text-white flex items-center gap-2">
-          <History size={20} />
-          Riwayat Perubahan Stok
-        </h4>
+      {/* ==================================================
+          HEADER
+      ================================================== */}
+
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+
+        <div>
+          <h2 className="text-title-md2 font-semibold text-black dark:text-white">
+            Riwayat Stok
+          </h2>
+
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            Pantau seluruh perubahan stok produk.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={loadLogs}
+          disabled={loading}
+          className="inline-flex items-center justify-center rounded-lg border border-gray-200 px-5 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/[0.03]"
+        >
+          {loading
+            ? "Memuat..."
+            : "Refresh"}
+        </button>
+
       </div>
 
-      {/* TABLE */}
-      <div className="flex flex-col overflow-x-auto">
+      {/* ==================================================
+          TABLE
+      ================================================== */}
 
-        {/* HEADER TABEL */}
-        <div className="min-w-[900px] grid grid-cols-7 rounded-sm bg-gray-2 dark:bg-[#313D4A] text-left text-black dark:text-white">
+      <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
 
-          <div className="p-2.5 xl:p-5">
-            <h5 className="text-sm font-semibold uppercase xsm:text-base">
-              Produk
-            </h5>
-          </div>
+        <div className="max-w-full overflow-x-auto">
 
-          <div className="p-2.5 xl:p-5">
-            <h5 className="text-sm font-semibold uppercase xsm:text-base">
-              Tipe
-            </h5>
-          </div>
+          <table className="w-full min-w-[1100px]">
 
-          <div className="p-2.5 xl:p-5 text-center">
-            <h5 className="text-sm font-semibold uppercase xsm:text-base">
-              Jumlah
-            </h5>
-          </div>
+            <thead>
+              <tr className="border-b border-gray-100 dark:border-gray-800">
 
-          <div className="p-2.5 xl:p-5 text-center">
-            <h5 className="text-sm font-semibold uppercase xsm:text-base">
-              Stok Sebelum
-            </h5>
-          </div>
+                <th className="px-6 py-4 text-left text-sm font-medium text-gray-500 dark:text-gray-400">
+                  #
+                </th>
 
-          <div className="p-2.5 xl:p-5 text-center">
-            <h5 className="text-sm font-semibold uppercase xsm:text-base">
-              Stok Sesudah
-            </h5>
-          </div>
+                <th className="px-6 py-4 text-left text-sm font-medium text-gray-500 dark:text-gray-400">
+                  Tanggal
+                </th>
 
-          <div className="p-2.5 xl:p-5">
-            <h5 className="text-sm font-semibold uppercase xsm:text-base">
-              Tanggal
-            </h5>
-          </div>
+                <th className="px-6 py-4 text-left text-sm font-medium text-gray-500 dark:text-gray-400">
+                  Produk
+                </th>
 
-          <div className="p-2.5 xl:p-5 text-center">
-            <h5 className="text-sm font-semibold uppercase xsm:text-base">
-              ID
-            </h5>
-          </div>
+                <th className="px-6 py-4 text-left text-sm font-medium text-gray-500 dark:text-gray-400">
+                  Tipe
+                </th>
+
+                <th className="px-6 py-4 text-right text-sm font-medium text-gray-500 dark:text-gray-400">
+                  Jumlah
+                </th>
+
+                <th className="px-6 py-4 text-center text-sm font-medium text-gray-500 dark:text-gray-400">
+                  Sebelum
+                </th>
+
+                <th className="px-6 py-4 text-center text-sm font-medium text-gray-500 dark:text-gray-400">
+                  Sesudah
+                </th>
+
+                <th className="px-6 py-4 text-left text-sm font-medium text-gray-500 dark:text-gray-400">
+                  Keterangan
+                </th>
+
+              </tr>
+            </thead>
+
+            <tbody>
+
+              {loading ? (
+
+                <tr>
+                  <td
+                    colSpan={8}
+                    className="px-6 py-10 text-center text-sm text-gray-500"
+                  >
+                    Memuat riwayat stok...
+                  </td>
+                </tr>
+
+              ) : logs.length === 0 ? (
+
+                <tr>
+                  <td
+                    colSpan={8}
+                    className="px-6 py-10 text-center text-sm text-gray-500"
+                  >
+                    Belum ada riwayat perubahan stok.
+                  </td>
+                </tr>
+
+              ) : (
+
+                logs.map((log, index) => (
+
+                  <tr
+                    key={log.id}
+                    className="border-b border-gray-100 last:border-b-0 dark:border-gray-800"
+                  >
+
+                    {/* NO */}
+
+                    <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
+                      {index + 1}
+                    </td>
+
+                    {/* DATE */}
+
+                    <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
+                      {formatDate(
+                        log.created_at
+                      )}
+                    </td>
+
+                    {/* PRODUCT */}
+
+                    <td className="px-6 py-4">
+
+                      <div>
+                        <p className="font-medium text-gray-800 dark:text-white">
+                          {log.product_name ||
+                            "Produk tidak ditemukan"}
+                        </p>
+
+                        {log.barcode && (
+                          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                            {log.barcode}
+                          </p>
+                        )}
+                      </div>
+
+                    </td>
+
+                    {/* TYPE */}
+
+                    <td className="px-6 py-4">
+
+                      <span
+                        className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${
+                          log.type === "in"
+                            ? "bg-green-100 text-green-600 dark:bg-green-500/10 dark:text-green-400"
+                            : log.type === "out"
+                            ? "bg-red-100 text-red-600 dark:bg-red-500/10 dark:text-red-400"
+                            : "bg-yellow-100 text-yellow-600 dark:bg-yellow-500/10 dark:text-yellow-400"
+                        }`}
+                      >
+                        {getTypeLabel(
+                          log.type
+                        )}
+                      </span>
+
+                    </td>
+
+                    {/* QUANTITY */}
+
+                    <td className="px-6 py-4 text-right">
+
+                      <span
+                        className={`text-sm font-semibold ${
+                          log.type === "in"
+                            ? "text-green-600 dark:text-green-400"
+                            : log.type === "out"
+                            ? "text-red-600 dark:text-red-400"
+                            : "text-yellow-600 dark:text-yellow-400"
+                        }`}
+                      >
+                        {log.type === "in"
+                          ? "+"
+                          : log.type === "out"
+                          ? "-"
+                          : ""}
+                        {log.quantity}
+                      </span>
+
+                    </td>
+
+                    {/* BEFORE */}
+
+                    <td className="px-6 py-4 text-center text-sm text-gray-600 dark:text-gray-300">
+                      {log.stock_before}
+                    </td>
+
+                    {/* AFTER */}
+
+                    <td className="px-6 py-4 text-center text-sm font-medium text-gray-800 dark:text-white">
+                      {log.stock_after}
+                    </td>
+
+                    {/* DESCRIPTION */}
+
+                    <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
+                      {log.description}
+                    </td>
+
+                  </tr>
+
+                ))
+
+              )}
+
+            </tbody>
+
+          </table>
 
         </div>
 
-        {/* LOADING */}
-        {loading && (
-          <div className="min-w-[900px] py-10 text-center text-sm text-gray-500 dark:text-gray-400">
-            Memuat riwayat stok...
-          </div>
-        )}
-
-        {/* DATA KOSONG */}
-        {!loading && logs.length === 0 && (
-          <div className="min-w-[900px] py-12 text-center">
-
-            <History
-              size={40}
-              className="mx-auto mb-3 text-gray-400"
-            />
-
-            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-              Belum ada riwayat perubahan stok.
-            </p>
-
-            <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
-              Riwayat stok akan muncul ketika terjadi transaksi atau perubahan stok.
-            </p>
-
-          </div>
-        )}
-
-        {/* DATA */}
-        {!loading &&
-          logs.map((log, key) => (
-            <div
-              key={log.id}
-              className={`min-w-[900px] grid grid-cols-7 ${
-                key === logs.length - 1
-                  ? ""
-                  : "border-b border-stroke dark:border-[#2E3A47]"
-              }`}
-            >
-
-              {/* PRODUK */}
-              <div className="flex items-center p-2.5 xl:p-5">
-                <p className="text-black dark:text-white font-medium text-sm sm:text-base">
-                  {log.product_name}
-                </p>
-              </div>
-
-              {/* TIPE */}
-              <div className="flex items-center p-2.5 xl:p-5">
-                <span
-                  className={`rounded-full px-3 py-1 text-xs font-medium ${getTypeClass(
-                    log.type
-                  )}`}
-                >
-                  {getTypeLabel(log.type)}
-                </span>
-              </div>
-
-              {/* JUMLAH */}
-              <div className="flex items-center justify-center p-2.5 xl:p-5">
-                <p className="font-mono text-sm font-semibold text-black dark:text-white">
-                  {log.quantity > 0 ? "+" : ""}
-                  {log.quantity}
-                </p>
-              </div>
-
-              {/* STOK SEBELUM */}
-              <div className="flex items-center justify-center p-2.5 xl:p-5">
-                <p className="text-sm text-gray-600 dark:text-gray-300">
-                  {log.stock_before}
-                </p>
-              </div>
-
-              {/* STOK SESUDAH */}
-              <div className="flex items-center justify-center p-2.5 xl:p-5">
-                <p className="font-semibold text-black dark:text-white">
-                  {log.stock_after}
-                </p>
-              </div>
-
-              {/* TANGGAL */}
-              <div className="flex items-center p-2.5 xl:p-5">
-                <p className="text-xs text-gray-600 dark:text-gray-300">
-                  {formatDate(log.created_at)}
-                </p>
-              </div>
-
-              {/* ID */}
-              <div className="flex items-center justify-center p-2.5 xl:p-5">
-                <p className="font-mono text-xs text-gray-500 dark:text-gray-400">
-                  #{log.id}
-                </p>
-              </div>
-
-            </div>
-          ))}
       </div>
+
     </div>
   );
 }
