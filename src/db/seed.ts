@@ -68,6 +68,7 @@ async function main() {
     { name: "Daftar Produk", path: "/admin/products", parent_id: productsMenu.id },
     { name: "Kategori", path: "/admin/products/categories", parent_id: productsMenu.id },
     { name: "Riwayat Stok", path: "/admin/products/stock-logs", parent_id: productsMenu.id },
+    { name: "Satuan", path: "/admin/produk/units", parent_id: productsMenu.id, },
   ]);
 
   // Transaksi

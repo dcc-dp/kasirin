@@ -161,6 +161,52 @@ export const products = mysqlTable("products", {
   }),
 );
 
+export const stock_logs = mysqlTable(
+    "stock_logs",
+    {
+      id: int().primaryKey().autoincrement(),
+
+      product_id: int().notNull(),
+
+      type: mysqlEnum("type", [
+        "in",
+        "out",
+        "adjustment",
+      ]).notNull(),
+
+      quantity: int().notNull(),
+
+      stock_before: int().notNull(),
+      stock_after: int().notNull(),
+
+      reference_type: varchar({ length: 50 }),
+      reference_id: int(),
+
+      description: longtext().notNull(),
+
+      user_id: int(),
+
+      created_at: datetime()
+        .default(sql`CURRENT_TIMESTAMP`)
+        .notNull(),
+
+      updated_at: datetime()
+        .default(sql`CURRENT_TIMESTAMP`)
+        .notNull(),
+    },
+    (table) => ({
+      product_id_fk: foreignKey({
+        columns: [table.product_id],
+        foreignColumns: [products.id],
+      }),
+
+      user_id_fk: foreignKey({
+        columns: [table.user_id],
+        foreignColumns: [users.id],
+      }),
+    })
+  );
+
 export const members = mysqlTable("members", {
   id: int().primaryKey().autoincrement(),
   nama: varchar({ length: 255 }).notNull(),
