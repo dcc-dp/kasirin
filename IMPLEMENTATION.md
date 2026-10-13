@@ -699,11 +699,26 @@ gantt
 - **Halaman Audit Admin**: Halaman [src/app/(admin)/admin/shifts/page.tsx](file:///c:/project/malsab/kasirin/src/app/(admin)/admin/shifts/page.tsx) dengan 4 Kartu KPI (Shift Aktif, Total Z-Report, Net Selisih Kasir, Fisik Kas Terkumpul), filter status, dan fitur cetak ulang Z-Report.
 - **Sinkronisasi Sidebar**: Menu "Riwayat Shift" (`/admin/shifts`, ikon `TimeIcon`) terdaftar di database dan [AppSidebar.tsx](file:///c:/project/malsab/kasirin/src/layout/AppSidebar.tsx).
 
-#### 🔹 Tahap 6: Antarmuka Kasir Digital (POS), Keyboard-First & Atomic Checkout
-- **Ergonomi Kasir**: Halaman `/kasir` keyboard-first (hotkeys F1–F8, Space, Enter, Esc), global barcode listener dengan feedback audio beep.
-- **Interaktivitas Cart**: Optimistic UI kuantitas item, diskon per item & transaksi, penukaran poin member, modal bayar tunai (kalkulator kembalian), QRIS, transfer bank.
-- **Cetak Struk Thermal**: Format 58mm & 80mm via `@media print`.
-- **Atomic Checkout**: Transaksi database ACID (potong stok kondisional anti-stok-minus, catat `stock_logs`, akumulasi poin).
+#### 🔹 Tahap 6: Antarmuka Kasir Digital (POS), Keyboard-First & Atomic Checkout (✅ SELESAI 100%)
+- **Audio Synthesizer Scanner**: Modul [src/lib/audio.ts](file:///c:/project/malsab/kasirin/src/lib/audio.ts) berbasis Web Audio API murni (tanpa file audio eksternal) untuk efek suara nada scan barcode (`1760Hz`), transaksi berhasil, dan nada peringatan error stok habis.
+- **Transaksi Atomik ACID MySQL**: Server Actions [src/actions/transaction.ts](file:///c:/project/malsab/kasirin/src/actions/transaction.ts) (`checkoutTransaction`, `getReceiptByInvoice`).
+  - Validasi wajib shift aktif kasir sebelum transaksi diizinkan.
+  - Proteksi stok minus (*Negative Stock Prevention*) yang menolak checkout jika stok barang di database tidak mencukupi permintaan.
+  - Pemotongan stok otomatis dan pencatatan snapshot HPP (`purchase_price`) ke `transaction_details`.
+  - Pencatatan mutasi keluar otomatis ke `stock_logs` (`type: out`, `reference_type: transaction`).
+  - Akumulasi dan penukaran poin loyalitas member secara otomatis.
+- **Komponen Modal POS Lengkap**:
+  - [PaymentModal.tsx](file:///c:/project/malsab/kasirin/src/components/pos/PaymentModal.tsx): Pembayaran Tunai (input uang bayar, quick cash chips, kalkulasi otomatis kembalian), QRIS dinamis statis, dan Transfer Bank; shortcut angka `1`, `2`, `3` dan `Enter` untuk checkout.
+  - [DiscountModal.tsx](file:///c:/project/malsab/kasirin/src/components/pos/DiscountModal.tsx): Diskon persentase (%) atau nominal tunai (Rp) dengan preset chips dan keterangan promo.
+  - [MemberSelectModal.tsx](file:///c:/project/malsab/kasirin/src/components/pos/MemberSelectModal.tsx): Pencarian instan member, penukaran poin (1 poin = Rp 100), pendaftaran member baru langsung di kasir (*quick register*), atau mode non-member (guest).
+  - [HelpShortcutModal.tsx](file:///c:/project/malsab/kasirin/src/components/pos/HelpShortcutModal.tsx): Cheatsheet panduan hotkeys keyboard kasir (`F1`–`F8`, `Space`, `Enter`, `Esc`).
+  - [ReceiptModal.tsx](file:///c:/project/malsab/kasirin/src/components/pos/ReceiptModal.tsx): Pratinjau dan cetak struk nota belanja thermal 58mm & 80mm via `@media print` dengan barcode faktur SVG.
+- **Layar POS Kasir Keyboard-First**: Halaman [src/app/kasir/page.tsx](file:///c:/project/malsab/kasirin/src/app/kasir/page.tsx) & [PosTerminalView.tsx](file:///c:/project/malsab/kasirin/src/components/pos/PosTerminalView.tsx)
+  - Fullscreen layout teroptimasi tanpa gangguan sidebar admin.
+  - Header POS: jam digital real-time, status badge shift kasir aktif, tombol petty cash kas kecil, tombol tutup shift Z-Report, toggle dark mode, dan navigasi admin/logout.
+  - Sisi Kiri: Katalog barang dengan live search barcode/nama (`F2`), filter kategori, indikator badge stok habis/menipis, dan global hardware barcode scanner listener.
+  - Sisi Kanan: Keranjang belanja responsif, kontrol kuantitas item, penukaran poin, ringkasan subtotal, diskon promo (`F4`), dan tombol checkout bayar cepat (`Space` / `F8`).
+  - Terintegrasi otomatis dengan modal pembukaan kasir jika belum ada shift yang aktif.
 
 #### 🔹 Tahap 7: Prosedur Void Transaksi & Retur / Refund Barang
 - **Void Transaksi**: Pembatalan transaksi aman dengan verifikasi akun supervisor/admin.
