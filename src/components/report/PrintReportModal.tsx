@@ -1,8 +1,9 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { formatRupiah } from "@/lib/financial";
 import type { FinancialReportData } from "@/actions/report";
+import { getPublicStoreInfo } from "@/actions/setting";
 import { FileText, Printer, X } from "lucide-react";
 
 interface PrintReportModalProps {
@@ -16,6 +17,28 @@ export default function PrintReportModal({
   data,
   onClose,
 }: PrintReportModalProps) {
+  const [storeInfo, setStoreInfo] = useState<{
+    store_name: string;
+    address: string;
+    phone: string | null;
+  }>({
+    store_name: "KASIRIN STORE",
+    address: "Jl. Malioboro No. 45, D.I. Yogyakarta",
+    phone: "(0274) 555-1234",
+  });
+
+  useEffect(() => {
+    getPublicStoreInfo().then((info) => {
+      if (info) {
+        setStoreInfo({
+          store_name: info.store_name,
+          address: info.address,
+          phone: info.phone,
+        });
+      }
+    });
+  }, []);
+
   if (!isOpen) return null;
 
   const { summary, paymentBreakdown, topProducts, dateRange } = data;
@@ -85,13 +108,14 @@ export default function PrintReportModal({
             id="printable-financial-report"
             className="mx-auto w-full max-w-[210mm] bg-white p-8 rounded-xl shadow-xs border border-gray-200 text-gray-900 text-xs font-sans space-y-6"
           >
-            {/* KOP Surat Toko */}
+            {/* KOP Surat Toko Dinamis */}
             <div className="border-b-2 border-gray-900 pb-4 text-center">
               <h2 className="text-xl font-black uppercase tracking-wider text-gray-900">
-                KASIRIN STORE
+                {storeInfo.store_name}
               </h2>
               <p className="text-[11px] text-gray-600">
-                Jl. Malioboro No. 45, D.I. Yogyakarta • Telp: (0274) 555-1234
+                {storeInfo.address}
+                {storeInfo.phone ? ` • Telp: ${storeInfo.phone}` : ""}
               </p>
               <h3 className="text-sm font-extrabold uppercase mt-2 tracking-wide text-gray-800">
                 LAPORAN LABA RUGI & KINERJA FINANSIAL

@@ -1,8 +1,9 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import type { CloseShiftResult } from "@/actions/shift";
 import { formatRupiah } from "@/lib/financial";
+import { getPublicStoreInfo } from "@/actions/setting";
 import { CheckCircle2, Printer, Store, X } from "lucide-react";
 
 interface ZReportModalProps {
@@ -12,6 +13,16 @@ interface ZReportModalProps {
 }
 
 export default function ZReportModal({ isOpen, data, onClose }: ZReportModalProps) {
+  const [storeName, setStoreName] = useState<string>("KASIRIN POS");
+
+  useEffect(() => {
+    getPublicStoreInfo().then((info) => {
+      if (info?.store_name) {
+        setStoreName(info.store_name);
+      }
+    });
+  }, []);
+
   if (!isOpen || !data) return null;
 
   const handlePrint = () => {
@@ -78,9 +89,9 @@ export default function ZReportModal({ isOpen, data, onClose }: ZReportModalProp
             id="printable-zreport"
             className="mx-auto w-[280px] p-4 bg-white text-black font-mono text-xs rounded-lg shadow-sm border border-gray-200"
           >
-            {/* Store Header */}
+            {/* Store Header Dinamis */}
             <div className="text-center border-b border-dashed border-gray-400 pb-2 mb-2">
-              <h4 className="font-bold text-sm tracking-widest uppercase">KASIRIN POS</h4>
+              <h4 className="font-bold text-sm tracking-widest uppercase">{storeName}</h4>
               <p className="text-[10px] text-gray-600">REKAPITULASI REGISTER (Z-REPORT)</p>
             </div>
 

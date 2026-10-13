@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import type { ReceiptDetail } from "@/actions/transaction";
 import { formatRupiah } from "@/lib/financial";
+import { getPublicStoreInfo } from "@/actions/setting";
 import BarcodeSvg from "@/components/common/BarcodeSvg";
 import { CheckCircle2, Printer, RotateCcw, X } from "lucide-react";
 
@@ -20,6 +21,30 @@ export default function ReceiptModal({
   onNewTransaction,
 }: ReceiptModalProps) {
   const [paperWidth, setPaperWidth] = useState<"58mm" | "80mm">("58mm");
+  const [storeInfo, setStoreInfo] = useState<{
+    store_name: string;
+    address: string;
+    phone: string | null;
+    receipt_footer: string | null;
+  }>({
+    store_name: "KASIRIN STORE",
+    address: "Jl. Malioboro No. 45, Yogyakarta",
+    phone: "0812-3456-7890",
+    receipt_footer: "Terima Kasih Atas Kunjungan Anda",
+  });
+
+  useEffect(() => {
+    getPublicStoreInfo().then((info) => {
+      if (info) {
+        setStoreInfo({
+          store_name: info.store_name,
+          address: info.address,
+          phone: info.phone,
+          receipt_footer: info.receipt_footer,
+        });
+      }
+    });
+  }, []);
 
   if (!isOpen || !data) return null;
 
@@ -110,11 +135,17 @@ export default function ReceiptModal({
               paperWidth === "58mm" ? "w-[260px]" : "w-[340px]"
             }`}
           >
-            {/* Header Toko */}
+            {/* Header Toko Dinamis */}
             <div className="text-center border-b border-dashed border-gray-400 pb-2 mb-2">
-              <h4 className="font-extrabold text-sm tracking-wider uppercase">KASIRIN STORE</h4>
-              <p className="text-[10px] text-gray-600">Jl. Malioboro No. 45, Yogyakarta</p>
-              <p className="text-[10px] text-gray-600">Telp: 0812-3456-7890</p>
+              <h4 className="font-extrabold text-sm tracking-wider uppercase">
+                {storeInfo.store_name}
+              </h4>
+              <p className="text-[10px] text-gray-600 leading-tight">
+                {storeInfo.address}
+              </p>
+              {storeInfo.phone && (
+                <p className="text-[10px] text-gray-600">Telp: {storeInfo.phone}</p>
+              )}
             </div>
 
             {/* Meta Transaksi */}
@@ -201,8 +232,9 @@ export default function ReceiptModal({
 
             {/* Footer Barcode & Thank You */}
             <div className="text-center space-y-1 pt-1">
-              <p className="text-[10px] font-bold uppercase">Terima Kasih Atas Kunjungan Anda</p>
-              <p className="text-[9px] text-gray-500">Barang yang sudah dibeli tidak dapat ditukar</p>
+              <p className="text-[10px] font-bold uppercase">
+                {storeInfo.receipt_footer || "Terima Kasih Atas Kunjungan Anda"}
+              </p>
               <div className="pt-1 flex justify-center scale-90">
                 <BarcodeSvg value={data.invoice_number} height={30} scale={1} showText={false} />
               </div>

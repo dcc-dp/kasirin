@@ -763,10 +763,23 @@ gantt
   - [PrintReportModal.tsx](file:///c:/project/malsab/kasirin/src/components/report/PrintReportModal.tsx): Format dokumen cetak akuntansi formal standar A4 via `@media print` lengkap dengan KOP toko, tabel rincian laba rugi, cara bayar, arus kas, top produk, dan kolom tanda tangan pengelola toko.
 - **Sinkronisasi Sidebar**: Menu "Laporan Keuangan" (`/admin/reports`) telah terdaftar di database tabel `menus` dan `role_permissions` admin.
 
-#### 🔹 Tahap 9: Pengaturan Toko, Health Probes & Audit Keamanan
-- **Profil Toko**: Pengaturan nama toko, alamat struk, logo, kontak, dan tarif PPN default di `/admin/settings`.
-- **SRE & Health Checks**: Endpoint `/api/health` dan `/api/ready` untuk memonitor status server dan database.
-- **Security Audit**: Konfigurasi security headers HTTP dan rate limiter login.
+#### 🔹 Tahap 9: Pengaturan Toko, Health Probes & Audit Keamanan (✅ SELESAI 100%)
+- **Profil & Struk Toko Dinamis**:
+  - Skema `store_settings` MySQL dimigrasikan dengan penambahan kolom `phone` dan `receipt_footer`.
+  - Server Actions [src/actions/setting.ts](file:///c:/project/malsab/kasirin/src/actions/setting.ts) (`getStoreSettings`, `getPublicStoreInfo`, `updateStoreSettings`).
+  - Halaman Admin [src/app/(admin)/admin/settings/page.tsx](file:///c:/project/malsab/kasirin/src/app/(admin)/admin/settings/page.tsx) & [StoreSettingsView.tsx](file:///c:/project/malsab/kasirin/src/app/(admin)/admin/settings/_components/StoreSettingsView.tsx):
+    - Formulir edit identitas usaha: nama toko, alamat, no telp/WA, email, logo, tarif default PPN (%), dan pesan kaki struk.
+    - Simulator Cetak Struk Kasir Real-time (Side-by-Side Live Thermal Receipt Preview) dengan toggle ukuran kertas 58mm & 80mm.
+  - Integrasi Dinamis: Seluruh komponen cetak struk nota belanja ([ReceiptModal.tsx](file:///c:/project/malsab/kasirin/src/components/pos/ReceiptModal.tsx)), dokumen laporan akuntansi A4 ([PrintReportModal.tsx](file:///c:/project/malsab/kasirin/src/components/report/PrintReportModal.tsx)), dan tutup kasir Z-Report ([ZReportModal.tsx](file:///c:/project/malsab/kasirin/src/components/shift/ZReportModal.tsx)) kini mengambil nama, alamat, nomor telepon, dan catatan kaki toko secara dinamis dari database.
+- **SRE & Health Probes (DevOps/Kubernetes Ready)**:
+  - Endpoint Liveness Probe [src/app/api/health/route.ts](file:///c:/project/malsab/kasirin/src/app/api/health/route.ts): Mengembalikan HTTP 200 `UP`, uptime detik, penggunaan memori RSS/Heap, dan info service.
+  - Endpoint Readiness Probe [src/app/api/ready/route.ts](file:///c:/project/malsab/kasirin/src/app/api/ready/route.ts): Menguji latensi dan konektivitas pool MySQL dengan query `SELECT 1` (HTTP 200 jika siap, HTTP 503 Service Unavailable jika database bermasalah).
+  - Pengecualian rute publik di [src/middleware.ts](file:///c:/project/malsab/kasirin/src/middleware.ts) agar probe dapat diakses langsung oleh orkestrator kontainer/load balancer.
+- **Audit Keamanan & Hardening (DevSecOps)**:
+  - Header Keamanan HTTP Enterprise di [next.config.ts](file:///c:/project/malsab/kasirin/next.config.ts): `X-DNS-Prefetch-Control`, `Strict-Transport-Security` (HSTS 2 tahun), `X-Frame-Options: SAMEORIGIN` (anti-clickjacking), `X-Content-Type-Options: nosniff` (anti-MIME sniffing), `Referrer-Policy: strict-origin-when-cross-origin`, dan `Permissions-Policy`.
+  - Proteksi Anti Brute-Force & Sliding Window Rate Limiter [src/lib/rate-limiter.ts](file:///c:/project/malsab/kasirin/src/lib/rate-limiter.ts): Terintegrasi ke [src/actions/auth.ts](file:///c:/project/malsab/kasirin/src/actions/auth.ts), otomatis membatasi maksimal 5 kali percobaan salah dan mengunci akun sementara selama 15 menit.
+  - Dasbor Audit Keamanan di tab "Audit Keamanan & SRE" dengan alat uji interaktif Live Ping Probe.
+- **Sinkronisasi Sidebar**: Menu "Pengaturan Toko" (`/admin/settings`, ikon `PlugInIcon`) aktif di sidebar admin dengan proteksi route guard penuh dari akun kasir.
 
 #### 🔹 Tahap 10: Pengujian QA, Kontainerisasi Docker & SOP Operasional
 - **Testing**: Menjalankan unit tests formula keuangan, atomic rollback test, dan simulasi race condition stok.

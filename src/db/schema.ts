@@ -350,9 +350,11 @@ export const store_settings = mysqlTable("store_settings", {
   id: int().primaryKey().autoincrement(),
   store_name: varchar({ length: 255 }).notNull(),
   address: longtext().notNull(),
+  phone: varchar({ length: 50 }),
   email: varchar({ length: 255 }).notNull(),
   logo: longtext().notNull(),
   tax: int().notNull(),
+  receipt_footer: varchar({ length: 255 }),
   created_at: datetime()
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),
