@@ -54,6 +54,12 @@ export default function HelpShortcutModal({
       badge: "Promo",
     },
     {
+      key: "F6",
+      name: "Cari Faktur / Retur",
+      desc: "Buka pencarian transaksi lama untuk keperluan retur barang atau cetak ulang struk",
+      badge: "Retur",
+    },
+    {
       key: "F7",
       name: "Kosongkan Keranjang",
       desc: "Menghapus semua item belanjaan yang sedang aktif dalam keranjang",

@@ -236,6 +236,9 @@ export const transactions = mysqlTable("transactions", {
   change_amount: int().notNull(),
   status: mysqlEnum("status", ["pending", "paid", "cancelled"]).notNull(),
   tax: int().notNull(),
+  void_reason: varchar({ length: 255 }),
+  voided_by: int(),
+  voided_at: datetime(),
   created_at: datetime()
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),
@@ -250,6 +253,10 @@ export const transactions = mysqlTable("transactions", {
     }),
     user_id_fk: foreignKey({
       columns: [table.user_id],
+      foreignColumns: [users.id],
+    }),
+    voided_by_fk: foreignKey({
+      columns: [table.voided_by],
       foreignColumns: [users.id],
     }),
   })
@@ -393,6 +400,53 @@ export const cash_movements = mysqlTable("cash_movements", {
     user_id_fk: foreignKey({
       columns: [table.user_id],
       foreignColumns: [users.id],
+    }),
+  })
+);
+
+export const returns = mysqlTable("returns", {
+  id: int().primaryKey().autoincrement(),
+  return_number: varchar({ length: 255 }).notNull(),
+  transaction_id: int().notNull(),
+  user_id: int().notNull(),
+  total_refund: int().notNull(),
+  refund_method: mysqlEnum("refund_method", ["cash", "transfer"]).default("cash").notNull(),
+  reason: longtext().notNull(),
+  created_at: datetime().default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updated_at: datetime().default(sql`CURRENT_TIMESTAMP`).notNull(),
+},
+  (table) => ({
+    transaction_id_fk: foreignKey({
+      columns: [table.transaction_id],
+      foreignColumns: [transactions.id],
+    }),
+    user_id_fk: foreignKey({
+      columns: [table.user_id],
+      foreignColumns: [users.id],
+    }),
+  })
+);
+
+export const return_details = mysqlTable("return_details", {
+  id: int().primaryKey().autoincrement(),
+  return_id: int().notNull(),
+  product_id: int().notNull(),
+  name: varchar({ length: 255 }).notNull(),
+  quantity: int().notNull(),
+  price: int().notNull(),
+  subtotal: int().notNull(),
+  item_condition: mysqlEnum("item_condition", ["good", "damaged"]).default("good").notNull(),
+  created_at: datetime().default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updated_at: datetime().default(sql`CURRENT_TIMESTAMP`).notNull(),
+},
+  (table) => ({
+    return_id_fk: foreignKey({
+      columns: [table.return_id],
+      foreignColumns: [returns.id],
+    }),
+    product_id_fk: foreignKey({
+      columns: [table.product_id],
+      foreignColumns: [products.id],
     }),
   })
 );

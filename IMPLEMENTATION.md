@@ -720,9 +720,27 @@ gantt
   - Sisi Kanan: Keranjang belanja responsif, kontrol kuantitas item, penukaran poin, ringkasan subtotal, diskon promo (`F4`), dan tombol checkout bayar cepat (`Space` / `F8`).
   - Terintegrasi otomatis dengan modal pembukaan kasir jika belum ada shift yang aktif.
 
-#### 🔹 Tahap 7: Prosedur Void Transaksi & Retur / Refund Barang
-- **Void Transaksi**: Pembatalan transaksi aman dengan verifikasi akun supervisor/admin.
-- **Retur Barang**: Form pengembalian barang cacat/salah beli dengan pemulihan stok dan pencatatan kas refund.
+#### 🔹 Tahap 7: Prosedur Void Transaksi & Retur / Refund Barang (✅ SELESAI 100%)
+- **Skema Database & Audit Log**:
+  - Kolom `void_reason`, `voided_by` (FK ke `users.id`), dan `voided_at` pada tabel `transactions`.
+  - Tabel baru `returns` (id, return_number, transaction_id, user_id, total_refund, refund_method, reason, timestamps).
+  - Tabel baru `return_details` (id, return_id, product_id, name, quantity, price, subtotal, item_condition `['good', 'damaged']`).
+- **Server Actions Atomik ACID**: [src/actions/transaction.ts](file:///c:/project/malsab/kasirin/src/actions/transaction.ts)
+  - `getTransactions()`: Query riwayat seluruh transaksi dengan 4 KPI agregat (Total Transaksi, Omzet Bersih, Total Void, Total Refund).
+  - `getTransactionDetailById()`: Mengambil detail faktur, list item, kuantitas yang sudah pernah diretur per item, dan riwayat retur terkait.
+  - `voidTransaction()`: Prosedur pembatalan faktur dengan verifikasi otorisasi supervisor/admin (memvalidasi username dan password bcrypt supervisor bagi akun kasir), pemulihan stok fisik ke `products`, pencatatan mutasi masuk `stock_logs` (`type: in`, `reference_type: void`), koreksi saldo poin member, dan pencatatan mutasi kas keluar di laci kasir jika metode bayar tunai.
+  - `processReturnItem()`: Prosedur retur parsial/penuh per item, validasi kuantitas tidak melebihi sisa pembelian, pemulihan stok otomatis jika kondisi barang layak jual (`good`), pencatatan barang rusak (`damaged`), pencatatan kas keluar refund, dan nomor faktur retur unik (`RET-...`).
+  - `getReturnHistory()`: Query seluruh riwayat pengembalian barang dan rincian kondisinya.
+- **Antarmuka Riwayat Transaksi Admin**: Halaman [src/app/(admin)/admin/transactions/page.tsx](file:///c:/project/malsab/kasirin/src/app/(admin)/admin/transactions/page.tsx) & [TransactionAdminView.tsx](file:///c:/project/malsab/kasirin/src/app/(admin)/admin/transactions/_components/TransactionAdminView.tsx)
+  - 4 Kartu KPI Finansial (Total Transaksi, Omzet Penjualan Bersih, Total Void, Total Nilai Retur/Refund).
+  - 4 Tab status: "Semua Transaksi", "Sukses (Paid)", "Dibatalkan (Void)", dan "Riwayat Retur Barang".
+  - Pencarian live nomor invoice / kasir / pelanggan serta filter rentang tanggal.
+  - Aksi tabel: Lihat Detail Transaksi, Cetak Ulang Struk, Void Faktur, dan Retur Barang.
+- **Komponen Modal Transaksi**:
+  - [VoidModal.tsx](file:///c:/project/malsab/kasirin/src/components/transaction/VoidModal.tsx): Dialog pembatalan transaksi dengan preset alasan cepat dan form otorisasi supervisor (meminta username & password admin jika diakses akun kasir).
+  - [ReturnModal.tsx](file:///c:/project/malsab/kasirin/src/components/transaction/ReturnModal.tsx): Dialog multi-item retur dengan stepper kuantitas sisa, switch kondisi barang (Layak Jual / Rusak), kalkulator live total refund, dan pilihan refund Tunai/Transfer.
+  - [TransactionDetailModal.tsx](file:///c:/project/malsab/kasirin/src/components/transaction/TransactionDetailModal.tsx): Dialog pratinjau detail transaksi lengkap dengan riwayat retur, status supervisor void, dan tombol cetak ulang nota thermal.
+  - [PosTransactionLookupModal.tsx](file:///c:/project/malsab/kasirin/src/components/pos/PosTransactionLookupModal.tsx): Dialog pencarian cepat transaksi lama di layar POS kasir (`F6`) untuk mempermudah kasir melayani retur dan cetak ulang nota langsung dari kasir.
 
 #### 🔹 Tahap 8: Pencatatan Keuangan, Analisis Laba Rugi & Ekspor Data
 - **Engine Finansial**: Server Actions `src/actions/report.ts`.

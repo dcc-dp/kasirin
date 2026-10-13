@@ -24,6 +24,14 @@ import MemberSelectModal, {
   type SelectedMemberData,
 } from "@/components/pos/MemberSelectModal";
 import HelpShortcutModal from "@/components/pos/HelpShortcutModal";
+import PosTransactionLookupModal from "@/components/pos/PosTransactionLookupModal";
+import VoidModal from "@/components/transaction/VoidModal";
+import ReturnModal from "@/components/transaction/ReturnModal";
+import {
+  type TransactionDetailData,
+  type TransactionListItem,
+  getReceiptByInvoice,
+} from "@/actions/transaction";
 
 // Icons
 import {
@@ -42,6 +50,7 @@ import {
   Package,
   Plus,
   RefreshCw,
+  RotateCcw,
   Search,
   ShieldAlert,
   ShoppingCart,
@@ -141,6 +150,19 @@ export default function PosTerminalView({
   const [isReceiptModal, setIsReceiptModal] = useState<boolean>(false);
   const [receiptData, setReceiptData] = useState<ReceiptDetail | null>(null);
 
+  // State Modals Stage 7 (Lookup, Void, Return)
+  const [isLookupModal, setIsLookupModal] = useState<boolean>(false);
+  const [txToVoid, setTxToVoid] = useState<{
+    id: number;
+    invoice_number: string;
+    grand_total: number;
+    user_name: string;
+    payment_method: string;
+  } | null>(null);
+  const [isVoidModal, setIsVoidModal] = useState<boolean>(false);
+  const [txToReturn, setTxToReturn] = useState<TransactionDetailData | null>(null);
+  const [isReturnModal, setIsReturnModal] = useState<boolean>(false);
+
   // Update Jam Real-Time tiap 1 detik
   useEffect(() => {
     const timer = setInterval(() => {
@@ -209,6 +231,12 @@ export default function PosTerminalView({
         if (cart.length > 0) {
           setIsDiscountModal(true);
         }
+        return;
+      }
+
+      if (e.key === "F6") {
+        e.preventDefault();
+        setIsLookupModal(true);
         return;
       }
 
@@ -519,6 +547,17 @@ export default function PosTerminalView({
 
         {/* Action Controls & User Header */}
         <div className="flex items-center gap-2">
+          {/* Lookup / Return Button */}
+          <button
+            type="button"
+            onClick={() => setIsLookupModal(true)}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-orange-50 hover:bg-orange-100 dark:bg-orange-950/40 dark:hover:bg-orange-900/50 text-xs font-bold text-orange-700 dark:text-orange-300 border border-orange-200 dark:border-orange-800 transition"
+            title="Cari Transaksi / Retur Barang (F6)"
+          >
+            <RotateCcw className="h-4 w-4" />
+            <span className="hidden sm:inline">Retur [F6]</span>
+          </button>
+
           {/* Shortcut Guide Button */}
           <button
             type="button"
@@ -1061,6 +1100,58 @@ export default function PosTerminalView({
         onNewTransaction={() => {
           setIsReceiptModal(false);
           searchInputRef.current?.focus();
+        }}
+      />
+
+      {/* Modal Cari Transaksi / Retur POS (Stage 7) */}
+      <PosTransactionLookupModal
+        isOpen={isLookupModal}
+        onClose={() => setIsLookupModal(false)}
+        onSelectReturn={(detail) => {
+          setTxToReturn(detail);
+          setIsReturnModal(true);
+        }}
+        onSelectVoid={(tx) => {
+          setTxToVoid({
+            id: tx.id,
+            invoice_number: tx.invoice_number,
+            grand_total: tx.grand_total,
+            user_name: tx.user_name,
+            payment_method: tx.payment_method,
+          });
+          setIsVoidModal(true);
+        }}
+        onPrintReceipt={async (inv) => {
+          const rec = await getReceiptByInvoice(inv);
+          if (rec) {
+            setReceiptData(rec);
+            setIsReceiptModal(true);
+          }
+        }}
+      />
+
+      {/* Modal Void Transaksi (Stage 7) */}
+      <VoidModal
+        isOpen={isVoidModal}
+        transaction={txToVoid}
+        currentUserRole={currentUser?.roleCode || "KSR"}
+        onClose={() => setIsVoidModal(false)}
+        onSuccess={async () => {
+          setIsVoidModal(false);
+          alert("Transaksi berhasil dibatalkan (Void). Stok barang telah dikembalikan.");
+          await reloadShiftData();
+        }}
+      />
+
+      {/* Modal Retur Barang (Stage 7) */}
+      <ReturnModal
+        isOpen={isReturnModal}
+        transactionDetail={txToReturn}
+        onClose={() => setIsReturnModal(false)}
+        onSuccess={async (retNo, totalRef) => {
+          setIsReturnModal(false);
+          alert(`Retur #${retNo} berhasil diproses. Total refund: ${formatRupiah(totalRef)}.`);
+          await reloadShiftData();
         }}
       />
     </div>
