@@ -7,6 +7,7 @@ import {
   getUnits,
   updateUnit,
 } from "@/actions/unit";
+import ProductNavTabs from "../_components/ProductNavTabs";
 
 type Unit = {
   id: number;
@@ -161,6 +162,8 @@ export default function UnitsPage() {
 
   return (
     <div className="mx-auto max-w-7xl p-4 md:p-6 2xl:p-10">
+      <ProductNavTabs />
+
       {/* Header */}
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>

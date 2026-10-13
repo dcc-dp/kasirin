@@ -34,9 +34,22 @@ export async function decrypt(input: string): Promise<any> {
   }
 }
 
-export async function setSession(userId: number, roleId: number) {
+export type SessionData = {
+  userId: number;
+  roleId: number;
+  roleCode?: string;
+  userName?: string;
+  expires: Date;
+};
+
+export async function setSession(
+  userId: number,
+  roleId: number,
+  roleCode = "KSR",
+  userName = ""
+) {
   const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 1 day
-  const session = await encrypt({ userId, roleId, expires });
+  const session = await encrypt({ userId, roleId, roleCode, userName, expires });
 
   const cookieStore = await cookies();
   cookieStore.set("session", session, {
@@ -49,10 +62,14 @@ export async function setSession(userId: number, roleId: number) {
 }
 
 export async function getSession() {
-  const cookieStore = await cookies();
-  const session = cookieStore.get("session")?.value;
-  if (!session) return null;
-  return await decrypt(session);
+  try {
+    const cookieStore = await cookies();
+    const session = cookieStore.get("session")?.value;
+    if (!session) return null;
+    return await decrypt(session);
+  } catch {
+    return null;
+  }
 }
 
 export async function updateSession(request: NextRequest) {

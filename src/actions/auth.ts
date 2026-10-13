@@ -1,7 +1,7 @@
 "use server";
 
 import { getDb } from "@/db";
-import { users } from "@/db/schema";
+import { users, roles } from "@/db/schema";
 import { comparePassword, setSession, clearSession } from "@/lib/auth";
 import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
@@ -16,8 +16,19 @@ export async function login(prevState: any, formData: FormData) {
 
   const db = getDb();
   
-  // Find user
-  const userList = await db.select().from(users).where(eq(users.name, name));
+  // Find user with role
+  const userList = await db
+    .select({
+      id: users.id,
+      name: users.name,
+      password: users.password,
+      role_id: users.role_id,
+      is_active: users.is_active,
+      role_code: roles.code,
+    })
+    .from(users)
+    .innerJoin(roles, eq(users.role_id, roles.id))
+    .where(eq(users.name, name));
   const user = userList[0];
 
   if (!user) {
@@ -35,10 +46,15 @@ export async function login(prevState: any, formData: FormData) {
     return { error: "Akun anda tidak aktif" };
   }
 
-  // Set session
-  await setSession(user.id, user.role_id);
+  // Set session with role code and user name
+  await setSession(user.id, user.role_id, user.role_code, user.name);
   
-  redirect("/admin/dashboard");
+  // Smart redirect: kasir langsung ke /kasir, admin ke /admin/dashboard
+  if (user.role_code === "KSR") {
+    redirect("/kasir");
+  } else {
+    redirect("/admin/dashboard");
+  }
 }
 
 export async function logout() {

@@ -224,7 +224,8 @@ export const members = mysqlTable("members", {
 export const transactions = mysqlTable("transactions", {
   id: int().primaryKey().autoincrement(),
   invoice_number: varchar({ length: 255 }).notNull(),
-  member_id: int().notNull(),
+  member_id: int(),
+  user_id: int().notNull(),
   point_gained: int(),
   transaction_date: datetime(),
   subtotal: int().notNull(),
@@ -247,6 +248,10 @@ export const transactions = mysqlTable("transactions", {
       columns: [table.member_id],
       foreignColumns: [members.id],
     }),
+    user_id_fk: foreignKey({
+      columns: [table.user_id],
+      foreignColumns: [users.id],
+    }),
   })
 );
 
@@ -257,6 +262,7 @@ export const transaction_details = mysqlTable("transaction_details", {
   name: varchar({ length: 255 }).notNull(),
   description: longtext().notNull(),
   selling_price: int().notNull(),
+  purchase_price: int().notNull().default(0),
   quantity: int().notNull(),
   subtotal: int().notNull(),
   created_at: datetime()
@@ -347,3 +353,47 @@ export const store_settings = mysqlTable("store_settings", {
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),
 });
+
+export const cash_shifts = mysqlTable("cash_shifts", {
+  id: int().primaryKey().autoincrement(),
+  user_id: int().notNull(),
+  start_time: datetime().default(sql`CURRENT_TIMESTAMP`).notNull(),
+  end_time: datetime(),
+  starting_cash: int().notNull(),
+  expected_cash: int(),
+  actual_cash: int(),
+  difference: int(),
+  notes: longtext(),
+  status: mysqlEnum("status", ["open", "closed"]).default("open").notNull(),
+  created_at: datetime().default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updated_at: datetime().default(sql`CURRENT_TIMESTAMP`).notNull(),
+},
+  (table) => ({
+    user_id_fk: foreignKey({
+      columns: [table.user_id],
+      foreignColumns: [users.id],
+    }),
+  })
+);
+
+export const cash_movements = mysqlTable("cash_movements", {
+  id: int().primaryKey().autoincrement(),
+  shift_id: int().notNull(),
+  user_id: int().notNull(),
+  type: mysqlEnum("type", ["in", "out"]).notNull(),
+  amount: int().notNull(),
+  reason: varchar({ length: 255 }).notNull(),
+  created_at: datetime().default(sql`CURRENT_TIMESTAMP`).notNull(),
+},
+  (table) => ({
+    shift_id_fk: foreignKey({
+      columns: [table.shift_id],
+      foreignColumns: [cash_shifts.id],
+    }),
+    user_id_fk: foreignKey({
+      columns: [table.user_id],
+      foreignColumns: [users.id],
+    }),
+  })
+);
+

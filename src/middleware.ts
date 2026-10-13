@@ -19,13 +19,18 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/signin', request.url));
   }
 
-  // Redirect to dashboard if accessing signin with session
+  // Redirect to appropriate destination if accessing signin with active session
   if (pathname === '/signin' && session) {
+    if (session.roleCode === 'KSR') {
+      return NextResponse.redirect(new URL('/kasir', request.url));
+    }
     return NextResponse.redirect(new URL('/admin/dashboard', request.url));
   }
   
-  // For admin routes, we can't easily check DB permissions here if using mysql2 (edge runtime limitation).
-  // We'll do the RBAC permission checks in layout.tsx or server components using a utility function.
+  // Route Guard: Kasir cannot access /admin routes directly
+  if (pathname.startsWith('/admin') && session && session.roleCode === 'KSR') {
+    return NextResponse.redirect(new URL('/kasir', request.url));
+  }
 
   return NextResponse.next();
 }

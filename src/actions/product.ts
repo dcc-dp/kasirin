@@ -3,7 +3,8 @@
 import { eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getDb } from "../db";
-import { categoris, products, units } from "../db/schema";
+import { categoris, products, units, stock_logs, users } from "../db/schema";
+import { getSession } from "../lib/auth";
 
 export async function getProducts() {
   const db = getDb();
@@ -128,7 +129,7 @@ export async function createProduct(data: {
       };
     }
 
-    await db.insert(products).values({
+    const [inserted] = await db.insert(products).values({
       category_id: data.category_id,
       unit_id: data.unit_id,
       barcode,
@@ -139,7 +140,22 @@ export async function createProduct(data: {
       stock: data.stock,
     });
 
-    revalidatePath("/admin/produk");
+    if (data.stock > 0 && (inserted as any)?.insertId) {
+      const session = await getSession();
+      await db.insert(stock_logs).values({
+        product_id: Number((inserted as any).insertId),
+        type: "in",
+        quantity: data.stock,
+        stock_before: 0,
+        stock_after: data.stock,
+        reference_type: "initial_stock",
+        description: "Stok awal produk baru",
+        user_id: session?.userId || null,
+      });
+    }
+
+    revalidatePath("/admin/products");
+    revalidatePath("/admin/products/stock-logs");
 
     return {
       success: true,
@@ -257,7 +273,8 @@ export async function updateProduct(
       })
       .where(eq(products.id, id));
 
-    revalidatePath("/admin/produk");
+    revalidatePath("/admin/products");
+    revalidatePath("/admin/products/stock-logs");
 
     return {
       success: true,
@@ -314,7 +331,8 @@ export async function deleteProduct(id: number) {
       .delete(products)
       .where(eq(products.id, id));
 
-    revalidatePath("/admin/produk");
+    revalidatePath("/admin/products");
+    revalidatePath("/admin/products/stock-logs");
 
     return {
       success: true,
@@ -326,6 +344,118 @@ export async function deleteProduct(id: number) {
     return {
       success: false,
       message: "Gagal menghapus produk.",
+    };
+  }
+}
+
+export async function getStockLogs() {
+  const db = getDb();
+
+  return await db
+    .select({
+      id: stock_logs.id,
+      product_id: stock_logs.product_id,
+      product_name: products.name,
+      type: stock_logs.type,
+      quantity: stock_logs.quantity,
+      stock_before: stock_logs.stock_before,
+      stock_after: stock_logs.stock_after,
+      reference_type: stock_logs.reference_type,
+      reference_id: stock_logs.reference_id,
+      description: stock_logs.description,
+      user_id: stock_logs.user_id,
+      user_name: users.name,
+      created_at: stock_logs.created_at,
+    })
+    .from(stock_logs)
+    .innerJoin(products, eq(stock_logs.product_id, products.id))
+    .leftJoin(users, eq(stock_logs.user_id, users.id))
+    .orderBy(sql`${stock_logs.created_at} DESC`);
+}
+
+export async function adjustStock(data: {
+  productId: number;
+  type: "in" | "out" | "adjustment";
+  quantity: number;
+  description: string;
+}) {
+  try {
+    const db = getDb();
+    const session = await getSession();
+
+    if (!data.productId) {
+      return { success: false, message: "Produk wajib dipilih." };
+    }
+    if (data.quantity <= 0) {
+      return { success: false, message: "Kuantitas penyesuaian harus lebih dari 0." };
+    }
+    if (!data.description || data.description.trim() === "") {
+      return { success: false, message: "Alasan penyesuaian wajib diisi." };
+    }
+
+    const [product] = await db
+      .select()
+      .from(products)
+      .where(eq(products.id, data.productId));
+
+    if (!product) {
+      return { success: false, message: "Produk tidak ditemukan." };
+    }
+
+    const stockBefore = product.stock;
+    let stockAfter = stockBefore;
+
+    if (data.type === "in") {
+      stockAfter = stockBefore + data.quantity;
+    } else if (data.type === "out") {
+      if (stockBefore < data.quantity) {
+        return {
+          success: false,
+          message: `Stok saat ini (${stockBefore}) tidak cukup untuk dikurangi ${data.quantity}.`,
+        };
+      }
+      stockAfter = stockBefore - data.quantity;
+    } else if (data.type === "adjustment") {
+      stockAfter = data.quantity;
+    }
+
+    await db.transaction(async (tx: any) => {
+      await tx
+        .update(products)
+        .set({
+          stock: stockAfter,
+          updated_at: new Date(),
+        })
+        .where(eq(products.id, data.productId));
+
+      await tx.insert(stock_logs).values({
+        product_id: data.productId,
+        type: data.type,
+        quantity: data.type === "adjustment" ? Math.abs(stockAfter - stockBefore) : data.quantity,
+        stock_before: stockBefore,
+        stock_after: stockAfter,
+        reference_type: "manual_adjustment",
+        description: data.description.trim(),
+        user_id: session?.userId || null,
+      });
+    });
+
+    try {
+      revalidatePath("/admin/products");
+      revalidatePath("/admin/products/stock-logs");
+    } catch {
+      // safe fallback outside request scope
+    }
+
+    return {
+      success: true,
+      message: "Penyesuaian stok berhasil disimpan.",
+    };
+  } catch (error) {
+    console.error("Adjust stock error:", error);
+    return {
+      success: false,
+      message: "Gagal menyimpan penyesuaian stok.",
     };
   }
 }
