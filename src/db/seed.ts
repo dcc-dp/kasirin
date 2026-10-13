@@ -1,6 +1,17 @@
 import "dotenv/config";
 import { drizzle } from "drizzle-orm/mysql2";
-import { roles, menus, role_permissions, users, categoris, units, products, stock_logs } from "./schema";
+import {
+  roles,
+  menus,
+  role_permissions,
+  users,
+  categoris,
+  units,
+  products,
+  stock_logs,
+  members,
+  suppliers,
+} from "./schema";
 import { hashPassword } from "../lib/auth";
 import { eq, sql } from "drizzle-orm";
 
@@ -59,8 +70,6 @@ async function main() {
   console.log("Seeding menus...");
   // Main
   await db.insert(menus).values({ name: "Dashboard", path: "/admin/dashboard", icon: "GridIcon" });
-  const dashboardMenuList = await db.select().from(menus).where(eq(menus.name, "Dashboard"));
-  const dashboardMenu = dashboardMenuList[0];
 
   // RBAC Group
   await db.insert(menus).values({ name: "Web Management", path: "/admin/rbac", icon: "UserCircleIcon" });
@@ -94,6 +103,10 @@ async function main() {
     { name: "Laporan Penjualan", path: "/admin/transactions", parent_id: transMenu.id },
     { name: "Restock", path: "/admin/purchases", parent_id: transMenu.id },
   ]);
+
+  // Member & Supplier
+  await db.insert(menus).values({ name: "Member", path: "/admin/members", icon: "GroupIcon" });
+  await db.insert(menus).values({ name: "Supplier", path: "/admin/suppliers", icon: "BoxIcon" });
 
   // Settings
   await db.insert(menus).values({ name: "Pengaturan Toko", path: "/admin/settings", icon: "PlugInIcon" });
@@ -222,6 +235,58 @@ async function main() {
         });
       }
     }
+  }
+
+  // 8. Seed Sample Members if empty
+  const existingMembers = await db.select().from(members);
+  if (existingMembers.length === 0) {
+    console.log("Seeding sample members...");
+    await db.insert(members).values([
+      {
+        nama: "Siti Rahmawati",
+        phone: "081234567890",
+        address: "Jl. Melati No. 12, RT 02/05, Jakarta Selatan",
+        poin: 45,
+      },
+      {
+        nama: "Budi Santoso",
+        phone: "085711223344",
+        address: "Jl. Mawar No. 5, Beji, Depok",
+        poin: 120,
+      },
+      {
+        nama: "Dewi Lestari",
+        phone: "087899887766",
+        address: "Komplek Anggrek Blok C2, Tangerang",
+        poin: 15,
+      },
+    ]);
+  }
+
+  // 9. Seed Sample Suppliers if empty
+  const existingSuppliers = await db.select().from(suppliers);
+  if (existingSuppliers.length === 0) {
+    console.log("Seeding sample suppliers...");
+    await db.insert(suppliers).values([
+      {
+        name: "PT Indofood CBP Sukses Makmur",
+        phone: "08118001234",
+        address: "Kawasan Industri Pulo Gadung, Jakarta Timur",
+        email: "order@indofood.co.id",
+      },
+      {
+        name: "CV Tirta Berkah Abadi (Distributor Aqua)",
+        phone: "081299881122",
+        address: "Jl. Raya Bogor KM 28, Cimanggis, Depok",
+        email: "distributor.tirta@gmail.com",
+      },
+      {
+        name: "PT Wings Surya Retail",
+        phone: "082155443322",
+        address: "Jl. Tipar Cakung No. 45, Cakung, Jakarta Timur",
+        email: "sales@wingscorp.com",
+      },
+    ]);
   }
 
   console.log("Seeding complete!");

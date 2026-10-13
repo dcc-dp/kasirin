@@ -677,9 +677,12 @@ gantt
   - Generator Barcode Acak standar EAN-13 di [src/lib/barcode.ts](file:///c:/project/malsab/kasirin/src/lib/barcode.ts).
   - Generator Vector SVG Code-128 dan Modal Pratinjau Cetak Label Rak Toko [BarcodeLabelModal.tsx](file:///c:/project/malsab/kasirin/src/app/(admin)/admin/products/_components/BarcodeLabelModal.tsx) (@media print).
 
-#### 🔹 Tahap 3: Master Data Member (Loyalitas & Privasi PII) & Supplier
-- **CRUD Member**: Server Actions `src/actions/member.ts`, UI di `/admin/members`, histori saldo poin belanja, dan sensor privasi PII nomor HP.
-- **CRUD Supplier**: Server Actions `src/actions/supplier.ts`, UI di `/admin/suppliers`, daftar kontak & alamat pemasok.
+#### 🔹 Tahap 3: Master Data Member (Loyalitas & Privasi PII) & Supplier (✅ SELESAI 100%)
+- **CRUD Member & PII Privacy**: Server Actions [src/actions/member.ts](file:///c:/project/malsab/kasirin/src/actions/member.ts) (`getMembers`, `searchMembers`, `createMember`, `updateMember`, `adjustMemberPoints`, `deleteMember`). Modul privasi [src/lib/privacy.ts](file:///c:/project/malsab/kasirin/src/lib/privacy.ts) untuk sensor nomor telepon PII (`maskPhoneNumber`). Proteksi penghapusan member berelasi transaksi.
+- **Antarmuka Member Admin**: Halaman [src/app/(admin)/admin/members/page.tsx](file:///c:/project/malsab/kasirin/src/app/(admin)/admin/members/page.tsx) dengan 4 Kartu KPI (Total Member, Poin Beredar, Akumulasi Belanja Rp, Member Aktif), toggle sensor privasi PII, integrasi direct WhatsApp link, modal registrasi/edit member, dan modal reward/koreksi poin.
+- **CRUD Supplier & Vendor**: Server Actions [src/actions/supplier.ts](file:///c:/project/malsab/kasirin/src/actions/supplier.ts) (`getSuppliers`, `searchSuppliers`, `createSupplier`, `updateSupplier`, `deleteSupplier`). Proteksi integritas audit restock (menolak penghapusan supplier yang memiliki faktur pembelian).
+- **Antarmuka Supplier Admin**: Halaman [src/app/(admin)/admin/suppliers/page.tsx](file:///c:/project/malsab/kasirin/src/app/(admin)/admin/suppliers/page.tsx) dengan KPI Vendor, kontak WhatsApp langsung, daftar gudang, dan modal form supplier.
+- **Sinkronisasi Sidebar**: Menu "Member" dan "Supplier" terdaftar di basis data tabel `menus` dan `role_permissions` admin, serta didukung ikon `GroupIcon` dan `BoxIcon` di [AppSidebar.tsx](file:///c:/project/malsab/kasirin/src/layout/AppSidebar.tsx).
 
 #### 🔹 Tahap 4: Pembelian Barang (Restock Supplier) & HPP Otomatis
 - **Restock Flow**: Server Actions `src/actions/purchase.ts`, form restock dari supplier di `/admin/purchases`.

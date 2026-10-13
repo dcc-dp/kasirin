@@ -14,6 +14,8 @@ import {
   PlugInIcon,
   TableIcon,
   UserCircleIcon,
+  GroupIcon,
+  BoxIcon,
 } from "../icons/index";
 import SidebarWidget from "./SidebarWidget";
 import { getSidebarMenus } from "@/actions/menu";
@@ -34,6 +36,8 @@ const iconMap: Record<string, React.ReactNode> = {
   "BoxCubeIcon": <BoxCubeIcon />,
   "TableIcon": <TableIcon />,
   "PlugInIcon": <PlugInIcon />,
+  "GroupIcon": <GroupIcon />,
+  "BoxIcon": <BoxIcon />,
 };
 
 const AppSidebar: React.FC = () => {
