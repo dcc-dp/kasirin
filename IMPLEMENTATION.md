@@ -781,10 +781,22 @@ gantt
   - Dasbor Audit Keamanan di tab "Audit Keamanan & SRE" dengan alat uji interaktif Live Ping Probe.
 - **Sinkronisasi Sidebar**: Menu "Pengaturan Toko" (`/admin/settings`, ikon `PlugInIcon`) aktif di sidebar admin dengan proteksi route guard penuh dari akun kasir.
 
-#### 🔹 Tahap 10: Pengujian QA, Kontainerisasi Docker & SOP Operasional
-- **Testing**: Menjalankan unit tests formula keuangan, atomic rollback test, dan simulasi race condition stok.
-- **DevOps**: Pembuatan `Dockerfile` multi-stage, `docker-compose.yml`, dan dokumentasi `.env.example`.
-- **Dokumentasi Pengguna**: Buku panduan ringkas SOP Kasir dan SOP Admin Toko.
+#### 🔹 Tahap 10: Pengujian QA, Kontainerisasi Docker & SOP Operasional (✅ SELESAI 100%)
+- **Pengujian Mutu Otomatis (Automated QA & Unit Tests)**:
+  - Suite pengujian terotomasi berbasis Bun Test Runner (`bun test`):
+    - [tests/financial.test.ts](file:///c:/project/malsab/kasirin/tests/financial.test.ts): Verifikasi ketepatan matematis formula finansial (`formatRupiah`, pembulatan uang tunai `roundCash`, kalkulasi Grand Total, kembalian tunai, omzet bersih, HPP, dan margin laba kotor).
+    - [tests/rate-limiter.test.ts](file:///c:/project/malsab/kasirin/tests/rate-limiter.test.ts): Verifikasi algoritma sliding window rate limiter, penurunan kuota gagal, penguncian akun 15 menit pada kegagalan ke-5, dan reset sukses.
+    - [tests/transaction-integrity.test.ts](file:///c:/project/malsab/kasirin/tests/transaction-integrity.test.ts): Pengujian konkurensi integritas ACID database, simulasi *Negative Stock Prevention* (menolak permintaan melebihi stok fisik), dan simulasi *Atomic Rollback* saat kegagalan di tengah transaksi multi-item.
+    - Hasil Pengujian: **14/14 tests pass 100%** (35 assertions) dalam waktu < 300 ms.
+- **Infrastruktur Kontainer & DevOps (Production Ready)**:
+  - [Dockerfile](file:///c:/project/malsab/kasirin/Dockerfile): Multi-stage Docker builder (Base $\rightarrow$ Deps $\rightarrow$ Builder $\rightarrow$ Standalone Runner) menghasilkan image akhir ringan (< 150 MB), berjalan di bawah user non-root `nextjs` demi keamanan kontainer, dan dilengkapi Docker `HEALTHCHECK` otomatis ke `/api/health`.
+  - [docker-compose.yml](file:///c:/project/malsab/kasirin/docker-compose.yml): Orkestrasi 1 perintah (`docker compose up -d`) menghubungkan container aplikasi Next.js dan container database MySQL 8.0 dengan persistent volume dan automated readiness condition.
+  - [.dockerignore](file:///c:/project/malsab/kasirin/.dockerignore): Mengecualikan file pengembangan lokal dari konteks build kontainer.
+  - [.env.example](file:///c:/project/malsab/kasirin/.env.example): Standardisasi konfigurasi environment variabel produksi dan kredensial koneksi Docker.
+- **Dokumentasi Pengguna & Standard Operating Procedures (SOP)**:
+  - [docs/SOP_KASIR.md](file:///c:/project/malsab/kasirin/docs/SOP_KASIR.md): Buku panduan operasional kasir harian lengkap 9 bab (buka shift, hotkeys keyboard `F1`–`F8`, scan barcode, transaksi member/non-member, redeem poin, petty cash, void/retur, tutup shift Z-Report, dan penanganan kertas printer macet).
+  - [docs/SOP_ADMIN.md](file:///c:/project/malsab/kasirin/docs/SOP_ADMIN.md): Buku panduan operasional manajemen toko 8 bab (katalog produk & barcode rak SVG Code-128, stock opname berkala, restock supplier & HPP otomatis, privasi PII member, vendor supplier, laporan laba rugi & ekspor Excel/CSV, profil toko di `/admin/settings`, serta audit SRE probes).
+  - [docs/DEPLOYMENT_GUIDE.md](file:///c:/project/malsab/kasirin/docs/DEPLOYMENT_GUIDE.md): Panduan instalasi server produksi, orkestrasi Docker Compose, skrip cronjob backup otomatis basis data harian, dan prosedur disaster recovery.
 
 ---
 

@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test": "bun test"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.19",
@@ -47,6 +48,7 @@
     "@types/react": "^19.2.1",
     "@types/react-dom": "^19.2.1",
     "@types/react-transition-group": "^4.4.12",
+    "bun-types": "^1.4.3",
     "drizzle-kit": "^1.0.0-rc.4",
     "eslint": "^9.39.1",
     "eslint-config-next": "16.0.7",

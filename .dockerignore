@@ -1,0 +1,28 @@
+# Git
+.git
+.gitignore
+
+# Dependencies & Build Artefacts
+node_modules
+.next
+out
+dist
+build
+*.tsbuildinfo
+
+# Test & Docs & Scratch
+tests
+docs
+scratch
+.system_generated
+
+# Environment files
+.env*.local
+
+# Logs & OS Files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+bun.lockb
+.DS_Store
+Thumbs.db

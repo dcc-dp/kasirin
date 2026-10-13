@@ -1,0 +1,59 @@
+version: "3.8"
+
+services:
+  # ============================================================================
+  # 1. Basis Data MySQL (Persistent Volume & Automated Health Check)
+  # ============================================================================
+  db:
+    image: mysql:8.0
+    container_name: kasirin-mysql-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_password_change_me}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-db_kasirin}
+      MYSQL_USER: ${MYSQL_USER:-kasirin}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-kasirin_secure_pass}
+    ports:
+      - "3306:3306"
+    volumes:
+      - kasirin_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-root_password_change_me}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - kasirin_net
+
+  # ============================================================================
+  # 2. Aplikasi Kasirin POS (Next.js Standalone Runner)
+  # ============================================================================
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: kasirin-pos-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: mysql://${MYSQL_USER:-kasirin}:${MYSQL_PASSWORD:-kasirin_secure_pass}@db:3306/${MYSQL_DATABASE:-db_kasirin}
+      JWT_SECRET: ${JWT_SECRET:-kasirin_super_secret_jwt_change_in_prod}
+      NODE_ENV: production
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+      NEXT_PUBLIC_DEFAULT_RECEIPT_PAPER_SIZE: ${NEXT_PUBLIC_DEFAULT_RECEIPT_PAPER_SIZE:-58mm}
+      NEXT_PUBLIC_DEFAULT_TAX_RATE: ${NEXT_PUBLIC_DEFAULT_TAX_RATE:-11}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - kasirin_net
+
+volumes:
+  kasirin_mysql_data:
+    driver: local
+
+networks:
+  kasirin_net:
+    driver: bridge
