@@ -164,7 +164,7 @@ export async function checkoutTransaction(
         member_id: data.member_id || null,
         user_id: userId,
         point_gained: pointGained,
-        transaction_date: transactionDate,
+        transaction_date: sql`CURRENT_TIMESTAMP`,
         subtotal: data.subtotal,
         discount: data.discount,
         grand_total: data.grand_total,

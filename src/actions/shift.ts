@@ -175,7 +175,7 @@ export async function openShift(
 
     const [inserted] = await db.insert(cash_shifts).values({
       user_id: userId,
-      start_time: new Date(),
+      start_time: sql`CURRENT_TIMESTAMP`,
       starting_cash: startingCash,
       status: "open",
       notes: notes?.trim() || null,
@@ -355,13 +355,13 @@ export async function closeShift(
     await db
       .update(cash_shifts)
       .set({
-        end_time: endTime,
+        end_time: sql`CURRENT_TIMESTAMP`,
         expected_cash: expectedCash,
         actual_cash: actualCash,
         difference: difference,
         notes: notes?.trim() || null,
         status: "closed",
-        updated_at: new Date(),
+        updated_at: sql`CURRENT_TIMESTAMP`,
       })
       .where(eq(cash_shifts.id, shiftId));
 
