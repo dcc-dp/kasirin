@@ -689,9 +689,15 @@ gantt
 - **Integritas Inventaris & Audit Log**: Setiap barang masuk tercatat otomatis ke `stock_logs` (`type: in`, `reference_type: purchase`, dengan referensi ID faktur dan nama supplier).
 - **Antarmuka Restock Admin**: Halaman [src/app/(admin)/admin/purchases/page.tsx](file:///c:/project/malsab/kasirin/src/app/(admin)/admin/purchases/page.tsx) dengan 4 Kartu KPI (Total Faktur Pembelian, Total Pengeluaran Restock, Total Unit Barang Masuk, Distributor Terkait), pencarian live, tabel riwayat faktur, modal formulir multi-item dinamis (auto-complete produk, kalkulator subtotal, dan opsi update harga jual), serta modal pratinjau dan cetak salinan faktur pembelian (@media print).
 
-#### 🔹 Tahap 5: Manajemen Shift Kasir & Rekonsiliasi Kas Fisik (*Cash Drawer*)
-- **Skema Shift**: Tabel `cash_shifts` (modal awal, expected cash, actual cash, selisih) dan `cash_movements` (petty cash).
-- **Alur Kasir**: Modal Buka Shift saat pertama kali membuka `/kasir`, input petty cash darurat toko, dan Tutup Shift (*Cash Counting* & Cetak *Z-Report*).
+#### 🔹 Tahap 5: Manajemen Shift Kasir & Rekonsiliasi Kas Fisik (*Cash Drawer*) (✅ SELESAI 100%)
+- **Engine Shift & Petty Cash**: Server Actions [src/actions/shift.ts](file:///c:/project/malsab/kasirin/src/actions/shift.ts) (`getActiveShift`, `openShift`, `recordCashMovement`, `closeShift`, `getShiftHistory`). Rekonsiliasi matematis laci kasir: $\text{Expected Cash} = \text{Starting Cash} + \text{Cash Sales} + \text{Cash In} - \text{Cash Out}$ dan penghitungan selisih ($\text{Difference} = \text{Actual Cash} - \text{Expected Cash}$).
+- **Komponen Shift Interaktif**:
+  - [OpenShiftModal.tsx](file:///c:/project/malsab/kasirin/src/components/shift/OpenShiftModal.tsx): Modal pembukaan kasir dengan preset modal awal.
+  - [PettyCashModal.tsx](file:///c:/project/malsab/kasirin/src/components/shift/PettyCashModal.tsx): Modal mutasi kas kecil masuk/keluar dengan preset keperluan operasional toko.
+  - [CloseShiftModal.tsx](file:///c:/project/malsab/kasirin/src/components/shift/CloseShiftModal.tsx): Modal tutup register dengan kalkulator pecahan uang lembaran & koin dan indikator status selisih kas fisik.
+  - [ZReportModal.tsx](file:///c:/project/malsab/kasirin/src/components/shift/ZReportModal.tsx): Format cetak struk thermal 58mm/80mm rekapitulasi shift kasir (Z-Report) via `@media print`.
+- **Halaman Audit Admin**: Halaman [src/app/(admin)/admin/shifts/page.tsx](file:///c:/project/malsab/kasirin/src/app/(admin)/admin/shifts/page.tsx) dengan 4 Kartu KPI (Shift Aktif, Total Z-Report, Net Selisih Kasir, Fisik Kas Terkumpul), filter status, dan fitur cetak ulang Z-Report.
+- **Sinkronisasi Sidebar**: Menu "Riwayat Shift" (`/admin/shifts`, ikon `TimeIcon`) terdaftar di database dan [AppSidebar.tsx](file:///c:/project/malsab/kasirin/src/layout/AppSidebar.tsx).
 
 #### 🔹 Tahap 6: Antarmuka Kasir Digital (POS), Keyboard-First & Atomic Checkout
 - **Ergonomi Kasir**: Halaman `/kasir` keyboard-first (hotkeys F1–F8, Space, Enter, Esc), global barcode listener dengan feedback audio beep.

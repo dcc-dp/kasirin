@@ -104,9 +104,10 @@ async function main() {
     { name: "Restock", path: "/admin/purchases", parent_id: transMenu.id },
   ]);
 
-  // Member & Supplier
+  // Member & Supplier & Shift
   await db.insert(menus).values({ name: "Member", path: "/admin/members", icon: "GroupIcon" });
   await db.insert(menus).values({ name: "Supplier", path: "/admin/suppliers", icon: "BoxIcon" });
+  await db.insert(menus).values({ name: "Riwayat Shift", path: "/admin/shifts", icon: "TimeIcon" });
 
   // Settings
   await db.insert(menus).values({ name: "Pengaturan Toko", path: "/admin/settings", icon: "PlugInIcon" });
