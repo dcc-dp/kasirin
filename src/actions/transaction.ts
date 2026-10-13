@@ -38,6 +38,9 @@ export type CheckoutInput = {
   payment_method: "cash" | "transfer" | "qris";
   paid_amount: number;
   points_redeemed?: number;
+  midtrans_order_id?: string | null;
+  midtrans_transaction_id?: string | null;
+  midtrans_payment_type?: string | null;
 };
 
 export type ReceiptDetail = {
@@ -170,6 +173,9 @@ export async function checkoutTransaction(
         change_amount: changeAmount,
         status: "paid",
         tax: data.tax,
+        midtrans_order_id: data.midtrans_order_id || null,
+        midtrans_transaction_id: data.midtrans_transaction_id || null,
+        midtrans_payment_type: data.midtrans_payment_type || null,
       });
 
       insertedTxId = Number(insertedTx.insertId);

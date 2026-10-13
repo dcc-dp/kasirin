@@ -15,6 +15,9 @@ export type StoreSettingsData = {
   logo: string;
   tax: number;
   receipt_footer: string | null;
+  midtrans_server_key: string | null;
+  midtrans_client_key: string | null;
+  midtrans_is_production: boolean;
   updated_at: Date;
 };
 
@@ -26,6 +29,9 @@ export type UpdateSettingsInput = {
   logo?: string;
   tax: number;
   receipt_footer?: string;
+  midtrans_server_key?: string;
+  midtrans_client_key?: string;
+  midtrans_is_production?: boolean;
 };
 
 /**
@@ -56,6 +62,9 @@ export async function getStoreSettings(): Promise<StoreSettingsData> {
       logo: "/images/logo/logo.svg",
       tax: 11,
       receipt_footer: "Terima Kasih Telah Berbelanja di Toko Kami!",
+      midtrans_server_key: process.env.MIDTRANS_SERVER_KEY || null,
+      midtrans_client_key: process.env.MIDTRANS_CLIENT_KEY || null,
+      midtrans_is_production: process.env.MIDTRANS_IS_PRODUCTION === "true",
       updated_at: new Date(),
     };
   }
@@ -69,6 +78,9 @@ export async function getStoreSettings(): Promise<StoreSettingsData> {
     logo: existing.logo,
     tax: existing.tax,
     receipt_footer: existing.receipt_footer ?? null,
+    midtrans_server_key: existing.midtrans_server_key || process.env.MIDTRANS_SERVER_KEY || null,
+    midtrans_client_key: existing.midtrans_client_key || process.env.MIDTRANS_CLIENT_KEY || null,
+    midtrans_is_production: Boolean(existing.midtrans_is_production),
     updated_at: existing.updated_at,
   };
 }
@@ -147,6 +159,9 @@ export async function updateStoreSettings(input: UpdateSettingsInput) {
           logo: input.logo ? input.logo.trim() : "/images/logo/logo.svg",
           tax: Math.round(input.tax),
           receipt_footer: input.receipt_footer ? input.receipt_footer.trim() : null,
+          midtrans_server_key: input.midtrans_server_key ? input.midtrans_server_key.trim() : null,
+          midtrans_client_key: input.midtrans_client_key ? input.midtrans_client_key.trim() : null,
+          midtrans_is_production: input.midtrans_is_production ? 1 : 0,
           updated_at: new Date(),
         })
         .where(eq(store_settings.id, existing.id));
@@ -159,6 +174,9 @@ export async function updateStoreSettings(input: UpdateSettingsInput) {
         logo: input.logo ? input.logo.trim() : "/images/logo/logo.svg",
         tax: Math.round(input.tax),
         receipt_footer: input.receipt_footer ? input.receipt_footer.trim() : null,
+        midtrans_server_key: input.midtrans_server_key ? input.midtrans_server_key.trim() : null,
+        midtrans_client_key: input.midtrans_client_key ? input.midtrans_client_key.trim() : null,
+        midtrans_is_production: input.midtrans_is_production ? 1 : 0,
       });
     }
 

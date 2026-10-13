@@ -9,7 +9,12 @@ import {
   AlertCircle,
   Building2,
   CheckCircle2,
+  Copy,
+  CreditCard,
   Database,
+  ExternalLink,
+  Eye,
+  EyeOff,
   FileText,
   Globe,
   HardDrive,
@@ -20,6 +25,7 @@ import {
   Percent,
   Phone,
   Printer,
+  QrCode,
   RefreshCw,
   Save,
   Server,
@@ -28,6 +34,7 @@ import {
   ShieldCheck,
   Store,
 } from "lucide-react";
+import { testMidtransConnection } from "@/actions/midtrans";
 
 interface StoreSettingsViewProps {
   initialSettings: StoreSettingsData;
@@ -36,7 +43,7 @@ interface StoreSettingsViewProps {
 export default function StoreSettingsView({
   initialSettings,
 }: StoreSettingsViewProps) {
-  const [activeTab, setActiveTab] = useState<"store" | "security">("store");
+  const [activeTab, setActiveTab] = useState<"store" | "midtrans" | "security">("store");
   const [isPending, startTransition] = useTransition();
 
   // Form State
@@ -48,12 +55,21 @@ export default function StoreSettingsView({
     logo: initialSettings.logo,
     tax: initialSettings.tax,
     receipt_footer: initialSettings.receipt_footer || "",
+    midtrans_server_key: initialSettings.midtrans_server_key || "",
+    midtrans_client_key: initialSettings.midtrans_client_key || "",
+    midtrans_is_production: Boolean(initialSettings.midtrans_is_production),
   });
 
   const [feedback, setFeedback] = useState<{
     type: "success" | "error";
     message: string;
   } | null>(null);
+
+  // Midtrans State
+  const [showServerKey, setShowServerKey] = useState(false);
+  const [midtransTesting, setMidtransTesting] = useState(false);
+  const [midtransTestResult, setMidtransTestResult] = useState<any>(null);
+  const [copiedWebhook, setCopiedWebhook] = useState(false);
 
   // Live Struk Thermal Width
   const [paperWidth, setPaperWidth] = useState<"58mm" | "80mm">("58mm");
@@ -128,6 +144,20 @@ export default function StoreSettingsView({
     }
   };
 
+  // Test Midtrans Connection
+  const handleTestMidtrans = async () => {
+    try {
+      setMidtransTesting(true);
+      setMidtransTestResult(null);
+      const res = await testMidtransConnection();
+      setMidtransTestResult(res);
+    } catch (err: any) {
+      setMidtransTestResult({ success: false, error: err.message });
+    } finally {
+      setMidtransTesting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -135,10 +165,10 @@ export default function StoreSettingsView({
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white flex items-center gap-2.5">
             <Store className="h-7 w-7 text-brand-600 dark:text-brand-400" />
-            Pengaturan Toko & Keamanan SRE
+            Pengaturan Toko & Payment Gateway
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            Kelola profil resmi usaha, konfigurasi struk nota kasir, tarif PPN default, dan pantau keandalan sistem (*SRE Health Probes*).
+            Kelola profil resmi usaha, konfigurasi Midtrans Payment Gateway (QRIS & Snap), serta audit keandalan sistem SRE.
           </p>
         </div>
 
@@ -154,7 +184,19 @@ export default function StoreSettingsView({
             }`}
           >
             <Building2 className="h-4 w-4" />
-            Profil & Struk Toko
+            Profil & Struk
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("midtrans")}
+            className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all ${
+              activeTab === "midtrans"
+                ? "bg-white text-gray-900 shadow-xs dark:bg-gray-700 dark:text-white"
+                : "text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+            }`}
+          >
+            <QrCode className="h-4 w-4 text-emerald-600" />
+            Midtrans Gateway
           </button>
           <button
             type="button"
@@ -523,7 +565,275 @@ export default function StoreSettingsView({
         </div>
       )}
 
-      {/* TAB 2: Audit Keamanan & SRE Health */}
+      {/* TAB 2: Pengaturan Midtrans Payment Gateway */}
+      {activeTab === "midtrans" && (
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+          {/* Form Kredensial Midtrans (7 Cols) */}
+          <div className="lg:col-span-7">
+            <form
+              onSubmit={handleSubmit}
+              className="space-y-6 rounded-2xl border border-gray-100 bg-white p-6 shadow-xs dark:border-gray-800 dark:bg-gray-900"
+            >
+              <div>
+                <div className="flex items-center justify-between">
+                  <h2 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <QrCode className="h-5 w-5 text-emerald-600" />
+                    Kredensial Midtrans Gateway
+                  </h2>
+                  <span
+                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold ${
+                      formData.midtrans_is_production
+                        ? "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-400"
+                        : "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400"
+                    }`}
+                  >
+                    {formData.midtrans_is_production ? "Production Mode" : "Sandbox Mode"}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Integrasi resmi Midtrans untuk pembayaran non-tunai kasir otomatis (Dynamic QRIS, GoPay, ShopeePay, dan Virtual Account).
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                {/* Environment Mode Toggle */}
+                <div className="rounded-xl border border-gray-200 bg-gray-50/50 p-4 dark:border-gray-800 dark:bg-gray-800/40">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-bold text-gray-900 dark:text-white block">
+                        Mode Lingkungan (*Environment*)
+                      </span>
+                      <p className="text-[11px] text-gray-500 mt-0.5">
+                        Gunakan mode Sandbox untuk simulasi tanpa uang asli, atau Production untuk transaksi riil.
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          midtrans_is_production: !prev.midtrans_is_production,
+                        }))
+                      }
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-hidden ${
+                        formData.midtrans_is_production ? "bg-brand-500" : "bg-gray-300 dark:bg-gray-700"
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          formData.midtrans_is_production ? "translate-x-6" : "translate-x-1"
+                        }`}
+                      />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Server Key */}
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                    Midtrans Server Key <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                    <input
+                      type={showServerKey ? "text" : "password"}
+                      name="midtrans_server_key"
+                      value={formData.midtrans_server_key || ""}
+                      onChange={handleChange}
+                      placeholder="Mid-server-xxxx atau SB-Mid-server-xxxx"
+                      className="w-full rounded-xl border border-gray-200 bg-gray-50/50 py-2 pl-9 pr-10 text-xs font-mono text-gray-900 outline-none transition-all focus:border-brand-500 focus:bg-white dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:focus:bg-gray-900"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowServerKey(!showServerKey)}
+                      className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                    >
+                      {showServerKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                  <p className="mt-1 text-[11px] text-gray-400">
+                    Kunci rahasia untuk otentikasi transaksi dari server kasir.
+                  </p>
+                </div>
+
+                {/* Client Key */}
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                    Midtrans Client Key <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <CreditCard className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                    <input
+                      type="text"
+                      name="midtrans_client_key"
+                      value={formData.midtrans_client_key || ""}
+                      onChange={handleChange}
+                      placeholder="Mid-client-xxxx atau SB-Mid-client-xxxx"
+                      className="w-full rounded-xl border border-gray-200 bg-gray-50/50 py-2 pl-9 pr-3 text-xs font-mono text-gray-900 outline-none transition-all focus:border-brand-500 focus:bg-white dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:focus:bg-gray-900"
+                    />
+                  </div>
+                  <p className="mt-1 text-[11px] text-gray-400">
+                    Kunci publik untuk memicu Midtrans Snap modal di browser kasir.
+                  </p>
+                </div>
+
+                {/* Webhook URL Helper */}
+                <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-4 dark:border-blue-900/40 dark:bg-blue-950/20 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-blue-900 dark:text-blue-300 flex items-center gap-1.5">
+                      <Globe className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                      Payment Notification (Webhook) URL
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const url = `${window.location.origin}/api/midtrans/webhook`;
+                        navigator.clipboard.writeText(url);
+                        setCopiedWebhook(true);
+                        setTimeout(() => setCopiedWebhook(false), 2000);
+                      }}
+                      className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-700 hover:underline dark:text-blue-300"
+                    >
+                      <Copy className="h-3 w-3" />
+                      {copiedWebhook ? "Tersalin!" : "Salin URL"}
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-blue-800 dark:text-blue-200/80 leading-relaxed">
+                    Daftarkan URL di bawah ini pada portal <b>Midtrans MAP &gt; Settings &gt; Configuration &gt; Payment Notification URL</b> agar konfirmasi lunas terjadi otomatis seketika:
+                  </p>
+                  <div className="p-2 rounded-lg bg-white/80 dark:bg-black/30 border border-blue-200 dark:border-blue-800 text-[11px] font-mono text-gray-800 dark:text-gray-200 break-all">
+                    {typeof window !== "undefined"
+                      ? `${window.location.origin}/api/midtrans/webhook`
+                      : "/api/midtrans/webhook"}
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-800">
+                <button
+                  type="button"
+                  onClick={handleTestMidtrans}
+                  disabled={midtransTesting}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 transition disabled:opacity-50"
+                >
+                  <RefreshCw className={`h-4 w-4 ${midtransTesting ? "animate-spin" : ""}`} />
+                  {midtransTesting ? "Menguji Koneksi..." : "Uji Koneksi Gateway"}
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={isPending}
+                  className="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-5 py-2.5 text-xs font-semibold text-white shadow-xs transition-all hover:bg-brand-600 active:scale-98 disabled:opacity-50"
+                >
+                  {isPending ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                      Menyimpan...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4" />
+                      Simpan Kredensial
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Live Connection Test Feedback */}
+              {midtransTestResult && (
+                <div
+                  className={`p-4 rounded-xl border text-xs font-medium space-y-1 ${
+                    midtransTestResult.success
+                      ? "bg-emerald-50 border-emerald-200 text-emerald-800 dark:bg-emerald-950/30 dark:border-emerald-800/40 dark:text-emerald-300"
+                      : "bg-red-50 border-red-200 text-red-800 dark:bg-red-950/30 dark:border-red-800/40 dark:text-red-300"
+                  }`}
+                >
+                  <div className="flex items-center gap-2 font-bold">
+                    {midtransTestResult.success ? (
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                    ) : (
+                      <AlertCircle className="h-4 w-4 text-red-600" />
+                    )}
+                    <span>{midtransTestResult.message || midtransTestResult.error}</span>
+                  </div>
+                  {midtransTestResult.success && (
+                    <div className="text-[11px] opacity-90 pl-6">
+                      Environment: <b>{midtransTestResult.environment}</b> • Latensi Ping: <b>{midtransTestResult.latencyMs} ms</b>
+                    </div>
+                  )}
+                </div>
+              )}
+            </form>
+          </div>
+
+          {/* Info Card & Panduan Midtrans POS (5 Cols) */}
+          <div className="lg:col-span-5 space-y-4">
+            <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-xs dark:border-gray-800 dark:bg-gray-900 space-y-4">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400">
+                  <ShieldCheck className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-gray-900 dark:text-white">
+                    Fitur Non-Tunai Midtrans POS
+                  </h3>
+                  <p className="text-[11px] text-gray-500">
+                    Keunggulan pembayaran non-tunai otomatis
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-3 text-xs text-gray-600 dark:text-gray-300">
+                <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800 space-y-1">
+                  <div className="font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
+                    <QrCode className="h-4 w-4 text-emerald-600" />
+                    1. Dynamic QRIS Otomatis
+                  </div>
+                  <p className="text-[11px] text-gray-500">
+                    Kasir tidak perlu input nominal di mesin EDC. Barcode QRIS dihasilkan otomatis sesuai nominal nota dan langsung lunas saat pelanggan scan.
+                  </p>
+                </div>
+
+                <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800 space-y-1">
+                  <div className="font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
+                    <CreditCard className="h-4 w-4 text-brand-600" />
+                    2. Snap Multi-Channel Popup
+                  </div>
+                  <p className="text-[11px] text-gray-500">
+                    Mendukung Virtual Account bank (BCA, Mandiri, BNI, BRI), GoPay, ShopeePay, dan kartu debit tanpa integrasi tambahan.
+                  </p>
+                </div>
+
+                <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800 space-y-1">
+                  <div className="font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
+                    <CheckCircle2 className="h-4 w-4 text-purple-600" />
+                    3. Auto-Settlement & Zero Fraud
+                  </div>
+                  <p className="text-[11px] text-gray-500">
+                    Mencegah struk palsu dari pembeli. Sistem hanya menyelesaikan nota jika uang terbukti masuk ke akun Midtrans toko.
+                  </p>
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-gray-100 dark:border-gray-800">
+                <a
+                  href="https://dashboard.midtrans.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-brand-600 hover:underline dark:text-brand-400"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  Buka Portal Midtrans Dashboard
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 3: Audit Keamanan & SRE Health */}
       {activeTab === "security" && (
         <div className="space-y-6">
           {/* SRE Probes Live Tester */}

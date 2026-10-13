@@ -236,6 +236,9 @@ export const transactions = mysqlTable("transactions", {
   change_amount: int().notNull(),
   status: mysqlEnum("status", ["pending", "paid", "cancelled"]).notNull(),
   tax: int().notNull(),
+  midtrans_order_id: varchar({ length: 255 }),
+  midtrans_transaction_id: varchar({ length: 255 }),
+  midtrans_payment_type: varchar({ length: 50 }),
   void_reason: varchar({ length: 255 }),
   voided_by: int(),
   voided_at: datetime(),
@@ -355,6 +358,9 @@ export const store_settings = mysqlTable("store_settings", {
   logo: longtext().notNull(),
   tax: int().notNull(),
   receipt_footer: varchar({ length: 255 }),
+  midtrans_server_key: varchar({ length: 255 }),
+  midtrans_client_key: varchar({ length: 255 }),
+  midtrans_is_production: int().default(0),
   created_at: datetime()
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),

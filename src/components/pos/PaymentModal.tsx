@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { formatRupiah } from "@/lib/financial";
 import { playPosBeep } from "@/lib/audio";
 import {
@@ -13,9 +13,24 @@ import {
   X,
   AlertCircle,
   Loader2,
+  RefreshCw,
+  ExternalLink,
+  ShieldCheck,
+  RotateCcw,
 } from "lucide-react";
 import type { CartItemInput, CheckoutInput, ReceiptDetail } from "@/actions/transaction";
 import { checkoutTransaction } from "@/actions/transaction";
+import {
+  requestMidtransQris,
+  pollMidtransQrisStatus,
+  requestMidtransSnap,
+} from "@/actions/midtrans";
+
+declare global {
+  interface Window {
+    snap?: any;
+  }
+}
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -47,13 +62,73 @@ export default function PaymentModal({
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // Midtrans QRIS State
+  const [qrisLoading, setQrisLoading] = useState<boolean>(false);
+  const [qrisData, setQrisData] = useState<{
+    orderId: string;
+    transactionId?: string;
+    qrCodeUrl?: string;
+    qrString?: string;
+    expiryTime?: string;
+  } | null>(null);
+  const [isQrisSettled, setIsQrisSettled] = useState<boolean>(false);
+  const [qrisError, setQrisError] = useState<string | null>(null);
+
+  // Midtrans Snap State
+  const [snapLoading, setSnapLoading] = useState<boolean>(false);
+
+  // Ref untuk mencegah double checkout
+  const isCheckedOutRef = useRef<boolean>(false);
+
+  // Inisialisasi State Saat Modal Terbuka
   useEffect(() => {
     if (isOpen) {
       setPaidAmount(grandTotal);
       setErrorMessage(null);
       setSubmitting(false);
+      setIsQrisSettled(false);
+      setQrisData(null);
+      setQrisError(null);
+      isCheckedOutRef.current = false;
     }
   }, [isOpen, grandTotal]);
+
+  // Generate QRIS saat beralih ke tab QRIS
+  useEffect(() => {
+    if (isOpen && paymentMethod === "qris" && !qrisData && !qrisLoading) {
+      handleGenerateMidtransQris();
+    }
+  }, [isOpen, paymentMethod]);
+
+  // Polling Real-Time Status Midtrans QRIS setiap 3 detik
+  useEffect(() => {
+    if (!isOpen || paymentMethod !== "qris" || !qrisData?.orderId || isQrisSettled || isCheckedOutRef.current) {
+      return;
+    }
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await pollMidtransQrisStatus(qrisData.orderId);
+        if (res.success && res.isSettled && !isCheckedOutRef.current) {
+          isCheckedOutRef.current = true;
+          setIsQrisSettled(true);
+          playPosBeep("success");
+          clearInterval(interval);
+
+          // Selesaikan checkout transaksi otomatis saat Midtrans mendeteksi status settlement!
+          await handleProcessCheckout(undefined, {
+            midtrans_order_id: qrisData.orderId,
+            midtrans_transaction_id: res.transactionId,
+            midtrans_payment_type: res.paymentType || "qris",
+          });
+        }
+      } catch (err) {
+        // Polling silent error
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [isOpen, paymentMethod, qrisData?.orderId, isQrisSettled]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -100,7 +175,6 @@ export default function PaymentModal({
       if (list.length >= 5) break;
     }
 
-    // Jika belum cukup, tambahkan kelipatan 50k atau 100k di atas grandTotal
     if (list.length < 4) {
       const ceil50 = Math.ceil(grandTotal / 50000) * 50000;
       if (!list.includes(ceil50) && ceil50 > grandTotal) list.push(ceil50);
@@ -113,7 +187,96 @@ export default function PaymentModal({
 
   const quickPresets = generateQuickCashPresets();
 
-  const handleProcessCheckout = async (e?: React.FormEvent) => {
+  // Memicu Pembuatan QRIS Dinamis Midtrans
+  const handleGenerateMidtransQris = async () => {
+    try {
+      setQrisLoading(true);
+      setQrisError(null);
+      setIsQrisSettled(false);
+      isCheckedOutRef.current = false;
+
+      const res = await requestMidtransQris(grandTotal);
+
+      if (res.success && res.qrCodeUrl && res.orderId) {
+        setQrisData({
+          orderId: res.orderId,
+          transactionId: res.transactionId,
+          qrCodeUrl: res.qrCodeUrl,
+          qrString: res.qrString,
+          expiryTime: res.expiryTime,
+        });
+      } else {
+        setQrisError(res.error || "Gagal menghubungkan ke Midtrans QRIS.");
+      }
+    } catch (err: any) {
+      setQrisError(err.message || "Gagal membuat transaksi QRIS.");
+    } finally {
+      setQrisLoading(false);
+    }
+  };
+
+  // Memicu Midtrans Snap Popup (Multi Channel: QRIS / E-Wallet / VA Bank)
+  const handleOpenMidtransSnap = async () => {
+    try {
+      setSnapLoading(true);
+      const itemDetails = items.map((i) => ({
+        id: String(i.product_id),
+        price: i.selling_price,
+        quantity: i.quantity,
+        name: i.name,
+      }));
+
+      const res = await requestMidtransSnap(grandTotal, itemDetails);
+
+      if (!res.success || !res.token) {
+        alert(res.error || "Gagal memuat Midtrans Snap.");
+        return;
+      }
+
+      // Pastikan Snap JS terpasang di window
+      if (!window.snap) {
+        const script = document.createElement("script");
+        script.src = res.snapJsUrl || "https://app.sandbox.midtrans.com/snap/snap.js";
+        script.setAttribute("data-client-key", res.clientKey || "");
+        document.body.appendChild(script);
+        await new Promise((resolve) => (script.onload = resolve));
+      }
+
+      window.snap.pay(res.token, {
+        onSuccess: async function (result: any) {
+          playPosBeep("success");
+          await handleProcessCheckout(undefined, {
+            midtrans_order_id: res.orderId,
+            midtrans_transaction_id: result.transaction_id,
+            midtrans_payment_type: result.payment_type || "snap",
+          });
+        },
+        onPending: function () {
+          alert("Transaksi sedang diproses oleh pelanggan (Pending).");
+        },
+        onError: function () {
+          alert("Pembayaran Midtrans gagal atau dibatalkan.");
+        },
+        onClose: function () {
+          // Kasir menutup dialog snap
+        },
+      });
+    } catch (err: any) {
+      alert("Error Snap: " + err.message);
+    } finally {
+      setSnapLoading(false);
+    }
+  };
+
+  // Finalisasi Checkout Transaksi ke Database
+  const handleProcessCheckout = async (
+    e?: React.FormEvent,
+    midtransDetails?: {
+      midtrans_order_id?: string;
+      midtrans_transaction_id?: string;
+      midtrans_payment_type?: string;
+    }
+  ) => {
     if (e) e.preventDefault();
     if (submitting) return;
 
@@ -137,6 +300,9 @@ export default function PaymentModal({
         payment_method: paymentMethod,
         paid_amount: paymentMethod === "cash" ? paidAmount : grandTotal,
         points_redeemed: pointsRedeemed || 0,
+        midtrans_order_id: midtransDetails?.midtrans_order_id || qrisData?.orderId || null,
+        midtrans_transaction_id: midtransDetails?.midtrans_transaction_id || qrisData?.transactionId || null,
+        midtrans_payment_type: midtransDetails?.midtrans_payment_type || (paymentMethod === "qris" ? "qris" : null),
       };
 
       const res = await checkoutTransaction(payload);
@@ -163,7 +329,7 @@ export default function PaymentModal({
   return (
     <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
       <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl dark:bg-gray-900 border border-gray-100 dark:border-gray-800 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-        {/* Header */}
+        {/* Header Modal */}
         <div className="flex items-center justify-between border-b border-gray-100 p-5 dark:border-gray-800">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400">
@@ -174,7 +340,7 @@ export default function PaymentModal({
                 Pembayaran Transaksi
               </h3>
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                Pilih metode bayar & kalkulasi kembalian pelanggan
+                Pilih metode bayar & selesaikan transaksi kasir
               </p>
             </div>
           </div>
@@ -246,7 +412,7 @@ export default function PaymentModal({
                 }`}
               >
                 <QrCode className="h-5 w-5 mb-1" />
-                <span>[2] QRIS</span>
+                <span>[2] Midtrans QRIS</span>
               </button>
 
               <button
@@ -262,12 +428,12 @@ export default function PaymentModal({
                 }`}
               >
                 <Building2 className="h-5 w-5 mb-1" />
-                <span>[3] Transfer</span>
+                <span>[3] Transfer / VA</span>
               </button>
             </div>
           </div>
 
-          {/* Conditional Input Berdasarkan Metode */}
+          {/* 1. KONTEN PEMBAYARAN TUNAI */}
           {paymentMethod === "cash" && (
             <div className="space-y-3">
               <div>
@@ -343,37 +509,160 @@ export default function PaymentModal({
             </div>
           )}
 
+          {/* 2. KONTEN PEMBAYARAN MIDTRANS QRIS DINAMIS */}
           {paymentMethod === "qris" && (
-            <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700/60 text-center space-y-2">
-              <div className="mx-auto w-36 h-36 bg-white p-2 rounded-xl shadow-xs border border-gray-200 flex flex-col items-center justify-center">
-                <QrCode className="w-24 h-24 text-gray-800" />
-                <span className="text-[9px] font-black text-gray-500 tracking-wider">
-                  NMID: ID10200392019
+            <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700/60 text-center space-y-3">
+              <div className="flex items-center justify-between px-1">
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-gray-600 dark:text-gray-300">
+                  <ShieldCheck className="h-4 w-4 text-emerald-600" />
+                  Midtrans Dynamic QRIS
                 </span>
+                {qrisData?.orderId && (
+                  <span className="font-mono text-[10px] text-gray-400">
+                    #{qrisData.orderId.slice(-8)}
+                  </span>
+                )}
               </div>
-              <p className="text-xs font-bold text-gray-800 dark:text-gray-200">
-                Scan QRIS Dinamis • {formatRupiah(grandTotal)}
-              </p>
-              <p className="text-[11px] text-gray-500 dark:text-gray-400">
-                Mendukung GoPay, OVO, ShopeePay, DANA, BCA, Mandiri, dan m-Banking lainnya
-              </p>
+
+              {qrisLoading ? (
+                <div className="flex flex-col items-center justify-center p-8 space-y-3">
+                  <Loader2 className="w-10 h-10 text-brand-600 animate-spin" />
+                  <p className="text-xs font-semibold text-gray-600 dark:text-gray-400">
+                    Menghubungkan ke Midtrans QRIS...
+                  </p>
+                </div>
+              ) : qrisData?.qrCodeUrl ? (
+                <div className="space-y-3">
+                  {/* QR Code Container */}
+                  <div className="mx-auto w-52 h-52 bg-white p-3 rounded-2xl shadow-xs border border-gray-200 flex flex-col items-center justify-center relative">
+                    <img
+                      src={qrisData.qrCodeUrl}
+                      alt="Midtrans QRIS"
+                      className="w-44 h-44 object-contain"
+                    />
+                    {isQrisSettled && (
+                      <div className="absolute inset-0 bg-emerald-600/90 rounded-2xl flex flex-col items-center justify-center text-white backdrop-blur-xs animate-in zoom-in-95">
+                        <CheckCircle2 className="w-12 h-12 mb-1" />
+                        <span className="text-xs font-black uppercase tracking-wider">
+                          LUNAS TERKONFIRMASI!
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Polling Status Indicator */}
+                  <div className="flex items-center justify-center gap-2">
+                    <span className="relative flex h-2.5 w-2.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                    </span>
+                    <span className="text-xs font-bold text-gray-700 dark:text-gray-300">
+                      {isQrisSettled
+                        ? "Pembayaran Berhasil! Memproses nota..."
+                        : "Menunggu Pelanggan Scan & Bayar (Auto Check)..."}
+                    </span>
+                  </div>
+
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-tight">
+                    Mendukung GoPay, BCA, Livin Mandiri, ShopeePay, OVO, DANA, dan seluruh m-Banking berstandar QRIS.
+                  </p>
+
+                  {/* Actions Bar */}
+                  <div className="flex items-center justify-center gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={handleGenerateMidtransQris}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-200 text-[11px] font-semibold text-gray-600 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 transition"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      Regenerate QRIS
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleOpenMidtransSnap}
+                      disabled={snapLoading}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-50 border border-brand-200 text-[11px] font-bold text-brand-700 hover:bg-brand-100 dark:bg-brand-950/40 dark:border-brand-800 dark:text-brand-300 transition"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      {snapLoading ? "Membuka..." : "Buka Midtrans Snap"}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3 py-4">
+                  <div className="mx-auto w-12 h-12 rounded-full bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400 flex items-center justify-center">
+                    <AlertCircle className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-gray-800 dark:text-gray-200">
+                      {qrisError || "QRIS Belum Siap"}
+                    </p>
+                    <p className="text-[11px] text-gray-500 mt-1">
+                      Klik tombol di bawah untuk membuat barcode QRIS baru atau gunakan Snap popup.
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleGenerateMidtransQris}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brand-500 text-white text-xs font-bold hover:bg-brand-600 shadow-xs"
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                      Buat QRIS Sekarang
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleOpenMidtransSnap}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gray-100 text-gray-700 text-xs font-semibold hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300"
+                    >
+                      <CreditCard className="w-4 h-4" />
+                      Gunakan Snap Popup
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
+          {/* 3. KONTEN PEMBAYARAN TRANSFER / VIRTUAL ACCOUNT */}
           {paymentMethod === "transfer" && (
-            <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700/60 space-y-2.5 text-xs">
-              <div className="flex justify-between items-center py-1 border-b border-gray-200 dark:border-gray-700">
-                <span className="text-gray-500">Bank Tujuan:</span>
-                <span className="font-bold text-gray-800 dark:text-gray-200">BCA (Bank Central Asia)</span>
+            <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700/60 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
+                  <Building2 className="h-4 w-4 text-purple-600" />
+                  Transfer Bank & Virtual Account
+                </span>
+                <button
+                  type="button"
+                  onClick={handleOpenMidtransSnap}
+                  disabled={snapLoading}
+                  className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-purple-100 text-purple-800 text-[11px] font-bold hover:bg-purple-200 dark:bg-purple-950/60 dark:text-purple-300 transition"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  {snapLoading ? "Memuat..." : "Buat VA Midtrans"}
+                </button>
               </div>
-              <div className="flex justify-between items-center py-1 border-b border-gray-200 dark:border-gray-700">
-                <span className="text-gray-500">No. Rekening:</span>
-                <span className="font-mono font-bold text-gray-800 dark:text-gray-200">882-019-2810</span>
+
+              {/* Rekening Toko Manual */}
+              <div className="space-y-2 text-xs bg-white dark:bg-gray-900 p-3 rounded-xl border border-gray-200 dark:border-gray-800">
+                <div className="flex justify-between items-center py-1 border-b border-gray-100 dark:border-gray-800">
+                  <span className="text-gray-500">Bank Tujuan:</span>
+                  <span className="font-bold text-gray-800 dark:text-gray-200">BCA (Bank Central Asia)</span>
+                </div>
+                <div className="flex justify-between items-center py-1 border-b border-gray-100 dark:border-gray-800">
+                  <span className="text-gray-500">No. Rekening:</span>
+                  <span className="font-mono font-bold text-gray-800 dark:text-gray-200">882-019-2810</span>
+                </div>
+                <div className="flex justify-between items-center py-1">
+                  <span className="text-gray-500">Atas Nama:</span>
+                  <span className="font-bold text-gray-800 dark:text-gray-200">KASIRIN STORE</span>
+                </div>
               </div>
-              <div className="flex justify-between items-center py-1">
-                <span className="text-gray-500">Atas Nama:</span>
-                <span className="font-bold text-gray-800 dark:text-gray-200">KASIRIN STORE</span>
-              </div>
+
+              <p className="text-[11px] text-gray-500 text-center">
+                Untuk pembayaran Virtual Account otomatis (BCA, Mandiri, BNI, BRI), klik tombol <b>&quot;Buat VA Midtrans&quot;</b> di atas.
+              </p>
             </div>
           )}
 
@@ -400,7 +689,11 @@ export default function PaymentModal({
               ) : (
                 <>
                   <CheckCircle2 className="h-4 w-4" />
-                  <span>Selesaikan Pembayaran (Enter)</span>
+                  <span>
+                    {paymentMethod === "cash"
+                      ? "Selesaikan Pembayaran (Enter)"
+                      : "Konfirmasi Selesai (Enter)"}
+                  </span>
                 </>
               )}
             </button>

@@ -75,7 +75,7 @@ Antarmuka Kasirin dirancang **Keyboard-First** agar antrean tidak macet. Minimal
 
 ---
 
-## 5. DISKON PROMO & METODE PEMBAYARAN
+## 5. DISKON PROMO & METODE PEMBAYARAN NON-TUNAI MIDTRANS
 1. **Diskon Promo (`F4`)**:
    - Tekan `F4` jika terdapat voucher diskon khusus atau promo toko. Masukkan persentase diskon (%) atau nominal langsung (Rp).
 2. **Buka Modal Bayar (`Space` atau `F8`)**:
@@ -83,10 +83,16 @@ Antarmuka Kasirin dirancang **Keyboard-First** agar antrean tidak macet. Minimal
      - Masukkan jumlah uang tunai yang diserahkan pelanggan.
      - Kasir dapat menekan tombol chip uang pas atau pecahan umum (Rp 20rb, Rp 50rb, Rp 100rb).
      - Sistem otomatis menghitung kembalian uang pelanggan.
-   - **Pembayaran QRIS (`2`)**:
-     - Sistem menampilkan instruksi QRIS toko. Tunggu hingga pelanggan menunjukkan notifikasi "Pembayaran Berhasil" di ponselnya sebelum menekan Enter.
-   - **Transfer Bank (`3`)**:
-     - Konfirmasikan nomor referensi transfer bank pelanggan.
+   - **Pembayaran QRIS Dinamis Midtrans (`2`)**:
+     - Sistem secara otomatis terhubung ke **Midtrans Core API** dan menampilkan barcode **QRIS Dinamis** dengan nominal belanja riil pelanggan.
+     - Pelanggan memindai barcode menggunakan aplikasi e-wallet / mobile banking apapun (GoPay, BCA Mobile, Livin Mandiri, OVO, Dana, ShopeePay, LinkAja).
+     - **Auto-Checkout Otomatis**: Sistem melakukan polling real-time setiap 3 detik. Begitu pelanggan selesai membayar di ponselnya, sistem akan berbunyi *success beep*, menyelesaikan faktur otomatis (*auto-settlement*), dan langsung mencetak struk kasir tanpa kasir perlu menekan tombol apapun.
+   - **Pembayaran Multi Non-Tunai / Snap (Virtual Account & E-Wallet)**:
+     - Jika pelanggan meminta bayar via Virtual Account Bank (BCA, Mandiri, BNI, BRI) atau kartu:
+     - Di dalam modal bayar, kasir menekan tombol **"Buka Midtrans Snap Multi Non-Tunai"**.
+     - Dialog interaktif Midtrans Snap muncul di layar, kasir/pelanggan memilih metode bank tujuan, nomor VA keluar, dan transaksi diselesaikan secara real-time.
+   - **Transfer Bank Langsung (`3`)**:
+     - Jika toko menerima transfer bank langsung ke rekening pemilik toko, konfirmasikan mutasi lalu tekan tombol konfirmasi transfer.
 3. Tekan `Enter` untuk menyelesaikan transaksi dan mencetak struk thermal nota belanja.
 
 ---

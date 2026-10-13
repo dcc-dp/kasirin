@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getSession } from './lib/auth';
 
-// Paths that don't require authentication (termasuk SRE Health Probes)
-const publicPaths = ['/signin', '/api/auth', '/api/health', '/api/ready'];
+// Paths that don't require authentication (termasuk SRE Health Probes & Midtrans Webhook)
+const publicPaths = ['/signin', '/api/auth', '/api/health', '/api/ready', '/api/midtrans'];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
