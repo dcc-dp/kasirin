@@ -684,9 +684,10 @@ gantt
 - **Antarmuka Supplier Admin**: Halaman [src/app/(admin)/admin/suppliers/page.tsx](file:///c:/project/malsab/kasirin/src/app/(admin)/admin/suppliers/page.tsx) dengan KPI Vendor, kontak WhatsApp langsung, daftar gudang, dan modal form supplier.
 - **Sinkronisasi Sidebar**: Menu "Member" dan "Supplier" terdaftar di basis data tabel `menus` dan `role_permissions` admin, serta didukung ikon `GroupIcon` dan `BoxIcon` di [AppSidebar.tsx](file:///c:/project/malsab/kasirin/src/layout/AppSidebar.tsx).
 
-#### 🔹 Tahap 4: Pembelian Barang (Restock Supplier) & HPP Otomatis
-- **Restock Flow**: Server Actions `src/actions/purchase.ts`, form restock dari supplier di `/admin/purchases`.
-- **Integritas Inventaris**: Penambahan stok fisik otomatis, pencatatan mutasi masuk `stock_logs` (`type: in`), dan pembaruan HPP produk.
+#### 🔹 Tahap 4: Pembelian Barang (Restock Supplier) & HPP Otomatis (✅ SELESAI 100%)
+- **Alur Restock Atomik ACID**: Server Actions [src/actions/purchase.ts](file:///c:/project/malsab/kasirin/src/actions/purchase.ts) (`getPurchases`, `getPurchaseById`, `getPurchaseFormOptions`, `createPurchase`). Transaksi database MySQL mengeksekusi header faktur `purchases`, item `purchase_details`, penambahan stok `products.stock`, dan pembaruan `purchase_price` (HPP) terkini dalam satu transaksi terisolasi.
+- **Integritas Inventaris & Audit Log**: Setiap barang masuk tercatat otomatis ke `stock_logs` (`type: in`, `reference_type: purchase`, dengan referensi ID faktur dan nama supplier).
+- **Antarmuka Restock Admin**: Halaman [src/app/(admin)/admin/purchases/page.tsx](file:///c:/project/malsab/kasirin/src/app/(admin)/admin/purchases/page.tsx) dengan 4 Kartu KPI (Total Faktur Pembelian, Total Pengeluaran Restock, Total Unit Barang Masuk, Distributor Terkait), pencarian live, tabel riwayat faktur, modal formulir multi-item dinamis (auto-complete produk, kalkulator subtotal, dan opsi update harga jual), serta modal pratinjau dan cetak salinan faktur pembelian (@media print).
 
 #### 🔹 Tahap 5: Manajemen Shift Kasir & Rekonsiliasi Kas Fisik (*Cash Drawer*)
 - **Skema Shift**: Tabel `cash_shifts` (modal awal, expected cash, actual cash, selisih) dan `cash_movements` (petty cash).
