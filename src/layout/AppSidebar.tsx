@@ -17,6 +17,7 @@ import {
   GroupIcon,
   BoxIcon,
   TimeIcon,
+  PieChartIcon,
 } from "../icons/index";
 import SidebarWidget from "./SidebarWidget";
 import { getSidebarMenus } from "@/actions/menu";
@@ -40,6 +41,7 @@ const iconMap: Record<string, React.ReactNode> = {
   "GroupIcon": <GroupIcon />,
   "BoxIcon": <BoxIcon />,
   "TimeIcon": <TimeIcon />,
+  "PieChartIcon": <PieChartIcon />,
 };
 
 const AppSidebar: React.FC = () => {

@@ -742,10 +742,26 @@ gantt
   - [TransactionDetailModal.tsx](file:///c:/project/malsab/kasirin/src/components/transaction/TransactionDetailModal.tsx): Dialog pratinjau detail transaksi lengkap dengan riwayat retur, status supervisor void, dan tombol cetak ulang nota thermal.
   - [PosTransactionLookupModal.tsx](file:///c:/project/malsab/kasirin/src/components/pos/PosTransactionLookupModal.tsx): Dialog pencarian cepat transaksi lama di layar POS kasir (`F6`) untuk mempermudah kasir melayani retur dan cetak ulang nota langsung dari kasir.
 
-#### 🔹 Tahap 8: Pencatatan Keuangan, Analisis Laba Rugi & Ekspor Data
-- **Engine Finansial**: Server Actions `src/actions/report.ts`.
-- **Dashboard Laporan**: Rekapitulasi omzet penjualan, rincian cara bayar, laporan beban pembelian restock, kalkulasi Laba Kotor toko, dan rekap selisih shift kasir.
-- **Ekspor Mandiri**: Fitur download laporan ke format Excel (.xlsx), CSV, dan PDF.
+#### 🔹 Tahap 8: Pencatatan Keuangan, Analisis Laba Rugi & Ekspor Data (✅ SELESAI 100%)
+- **Engine Finansial & Agregasi Terpadu**: Server Actions [src/actions/report.ts](file:///c:/project/malsab/kasirin/src/actions/report.ts)
+  - `getFinancialReport()`: Menghitung metrik finansial toko (Omzet Kotor, Diskon Promo, Retur & Refund, Omzet Bersih, HPP/COGS dari riwayat snapshot modal, Laba Kotor Toko, Margin Laba Kotor %, Beban Pembelian Restock Supplier, dan Net Selisih Fisik Laci Kasir).
+  - Breakdown Metode Bayar: Pembagian transaksi & omzet untuk Tunai (Cash), QRIS, dan Transfer Bank.
+  - Analisis Tren Harian: Data time-series harian untuk visualisasi grafik ApexCharts.
+  - Top 10 Produk Terlaris: Urutan produk dengan penjualan terbanyak beserta kontribusi laba kotor.
+  - Performa Kasir: Audit jumlah transaksi, omzet per kasir, rata-rata keranjang belanja (*basket size*), dan selisih kas register.
+  - `getExportReportData()`: Query seluruh baris transaksi terperinci siap download.
+- **Utilitas Ekspor Multi-Format**: [src/lib/export.ts](file:///c:/project/malsab/kasirin/src/lib/export.ts)
+  - Ekspor Microsoft Excel murni (`.xlsx`) via engine SheetJS `xlsx`.
+  - Ekspor CSV kompatibel RFC 4180 dengan UTF-8 BOM untuk Microsoft Excel & Google Sheets.
+- **Antarmuka Dashboard Laporan Keuangan**: Halaman [src/app/(admin)/admin/reports/page.tsx](file:///c:/project/malsab/kasirin/src/app/(admin)/admin/reports/page.tsx) & [FinancialReportView.tsx](file:///c:/project/malsab/kasirin/src/app/(admin)/admin/reports/_components/FinancialReportView.tsx)
+  - 6 Kartu KPI Finansial Utama (Omzet Bersih, HPP Modal Terjual, Laba Kotor & Margin %, Beban Restock, Selisih Kas Laci, Rata-rata Keranjang).
+  - Filter Rentang Waktu Dinamis (Hari Ini, Minggu Ini, Bulan Ini, Tahun Ini, dan Kustom Date Picker).
+  - Visualisasi Grafik Tren Area Chart ApexCharts (Omzet Bersih, HPP, Laba Kotor).
+  - Panel Rincian Pembayaran (Progress bars) & Tabel Top 10 Produk Terlaris.
+  - Tabel Kinerja & Audit Kasir Toko.
+- **Pratinjau & Cetak Dokumen PDF Akuntansi A4**:
+  - [PrintReportModal.tsx](file:///c:/project/malsab/kasirin/src/components/report/PrintReportModal.tsx): Format dokumen cetak akuntansi formal standar A4 via `@media print` lengkap dengan KOP toko, tabel rincian laba rugi, cara bayar, arus kas, top produk, dan kolom tanda tangan pengelola toko.
+- **Sinkronisasi Sidebar**: Menu "Laporan Keuangan" (`/admin/reports`) telah terdaftar di database tabel `menus` dan `role_permissions` admin.
 
 #### 🔹 Tahap 9: Pengaturan Toko, Health Probes & Audit Keamanan
 - **Profil Toko**: Pengaturan nama toko, alamat struk, logo, kontak, dan tarif PPN default di `/admin/settings`.
