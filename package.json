@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "test": "bun test"
+    "test": "bun test",
+    "db:push": "drizzle-kit push",
+    "db:seed": "bun run src/db/seed.ts"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.19",
