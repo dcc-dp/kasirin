@@ -1,208 +1,294 @@
-# TailAdmin Next.js - Free Next.js Tailwind Admin Dashboard Template
+# Kasirin — Modern Point of Sale (POS) & Retail Management System
 
-TailAdmin is a free and open-source admin dashboard template built on **Next.js and Tailwind CSS** providing developers with everything they need to create a feature-rich and data-driven: back-end, dashboard, or admin panel solution for any sort of web project.
+<p align="center">
+  <img src="./public/images/logo/logo.svg" alt="Kasirin Logo" width="160" />
+</p>
 
-![TailAdmin - Next.js Dashboard Preview](./banner.png)
+<p align="center">
+  <b>Sistem Point of Sale (POS) & Manajemen Retail Modern, Terpadu, Cepat, dan Siap Pakai.</b>
+  <br />
+  Dirancang dengan pendekatan <i>Keyboard-First</i>, integrasi Payment Gateway <b>Midtrans</b> (QRIS Dinamis & Snap), perlindungan stok <i>ACID (Negative Stock Prevention)</i>, otorisasi supervisor untuk Void/Retur, dan pembukuan kasir berbasis Shift (Z-Report).
+</p>
 
-With TailAdmin Next.js, you get access to all the necessary dashboard UI components, elements, and pages required to build a high-quality and complete dashboard or admin panel. Whether you're building a dashboard or admin panel for a complex web application or a simple website.
+<p align="center">
+  <img src="https://img.shields.io/badge/Next.js-16.2-black?style=for-the-badge&logo=next.js" alt="Next.js 16" />
+  <img src="https://img.shields.io/badge/React-19.2-blue?style=for-the-badge&logo=react" alt="React 19" />
+  <img src="https://img.shields.io/badge/TypeScript-5.9-blue?style=for-the-badge&logo=typescript" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/Tailwind_CSS-v4.1-38B2AC?style=for-the-badge&logo=tailwind-css" alt="Tailwind CSS" />
+  <img src="https://img.shields.io/badge/MySQL-8.0-4479A1?style=for-the-badge&logo=mysql&logoColor=white" alt="MySQL" />
+  <img src="https://img.shields.io/badge/Drizzle_ORM-1.0-C5F74F?style=for-the-badge&logo=drizzle" alt="Drizzle ORM" />
+  <img src="https://img.shields.io/badge/Midtrans-Gateway-0070BA?style=for-the-badge" alt="Midtrans Gateway" />
+  <img src="https://img.shields.io/badge/Runtime-Bun-fbf0df?style=for-the-badge&logo=bun&logoColor=black" alt="Bun Runtime" />
+</p>
 
-TailAdmin utilizes the powerful features of **Next.js 16** and common features of Next.js such as server-side rendering (SSR), static site generation (SSG), and seamless API route integration. Combined with the advancements of **React 19** and the robustness of **TypeScript**, TailAdmin is the perfect solution to help get your project up and running quickly.
+---
 
-## Overview
+## 📑 Daftar Isi
+1. [Fitur Unggulan](#-fitur-unggulan)
+2. [Teknologi yang Digunakan](#-teknologi-yang-digunakan)
+3. [Prasyarat Sistem](#-prasyarat-sistem)
+4. [Panduan Instalasi & Menjalankan](#-panduan-instalasi--menjalankan)
+5. [Akun Default Demo](#-akun-default-demo)
+6. [Ergonomi Keyboard Kasir (Hotkeys F1–F8)](#-ergonomi-keyboard-kasir-hotkeys-f1f8)
+7. [Integrasi Payment Gateway Midtrans](#-integrasi-payment-gateway-midtrans)
+8. [Pengujian Unit (Unit Testing)](#-pengujian-unit-unit-testing)
+9. [Deployment Menggunakan Docker](#-deployment-menggunakan-docker)
+10. [Struktur Direktori Proyek](#-struktur-direktori-proyek)
+11. [Dokumentasi Operasional](#-dokumentasi-operasional)
+12. [Lisensi](#-lisensi)
 
-TailAdmin provides essential UI components and layouts for building feature-rich, data-driven admin dashboards and control panels. It's built on:
+---
 
-* Next.js 16.x
-* React 19
-* TypeScript
-* Tailwind CSS V4
+## ✨ Fitur Unggulan
 
-### Quick Links
+### 1. ⚡ Layar Kasir POS Berkecepatan Tinggi (Keyboard-First)
+- **Operasional Tanpa Mouse**: Seluruh alur transaksi kasir dapat dikendalikan penuh via tombol fungsi keyboard (`F1` - `F8`).
+- **Pindai Barcode Cepat**: Dukungan barcode scanner fisik (USB/Bluetooth) dengan respons instan dan pencarian produk otomatis.
+- **Efek Suara Audio Sintetis**: Menggunakan *Web Audio API* sintetis tanpa aset file eksternal (bunyi *beep* scanner `1760Hz` dan konfirmasi transaksi sukses).
+- **Cart Recovery Otomatis**: Memori keranjang belanja tersimpan aman di browser lokal sehingga kasir tidak kehilangan antrean belanja saat jaringan tidak stabil.
 
-* [✨ Visit Website](https://tailadmin.com)
-* [📄 Documentation](https://tailadmin.com/docs)
-* [⬇️ Download](https://tailadmin.com/download)
-* [🖌️ Figma Design File (Community Edition)](https://www.figma.com/community/file/1463141366275764364)
-* [⚡ Get PRO Version](https://tailadmin.com/pricing)
+### 2. 💳 Pembayaran Non-Tunai Midtrans Gateway
+- **QRIS Dinamis Real-Time (Core API)**: Sistem secara otomatis menghasilkan barcode QRIS dengan nominal belanja riil. Pelanggan dapat memindai dari aplikasi e-wallet/m-banking apapun (GoPay, BCA, Livin Mandiri, OVO, Dana, ShopeePay).
+- **Auto-Polling & Auto-Checkout**: Sistem memeriksa status pembayaran setiap 3 detik secara background. Saat pelanggan selesai membayar, sistem otomatis berbunyi *success*, mengunci transaksi, dan mencetak struk kasir.
+- **Midtrans Snap Popup**: Dukungan transaksi multi non-tunai lengkap (Virtual Account Bank BCA/Mandiri/BNI/BRI, E-Wallet, dan Kartu).
+- **Webhook Asinkron Terverifikasi (`/api/midtrans/webhook`)**: Validasi keamanan ketat menggunakan enkripsi *SHA-512 Signature Hash* untuk mencegah manipulasi transaksi pihak ketiga.
+- **Panel Pengaturan Midtrans**: Kelola Server Key, Client Key, toggle mode Sandbox vs Production, serta alat uji koneksi langsung di `/admin/settings`.
 
-### Demos
+### 3. 🛡️ Integritas Transaksi ACID & Pencegahan Stok Minus
+- **Negative Stock Prevention**: Mencegah penjualan barang jika stok fisik di database tidak mencukupi (termasuk saat beberapa kasir checkout item yang sama secara serentak).
+- **Real-Time Stock Mutation Logs**: Pencatatan audit trail lengkap untuk setiap pergerakan barang (Penjualan, Pembelian/Restock, Void, Retur, dan Penyesuaian Stok/Opname).
 
-* [Free Version](https://nextjs-free-demo.tailadmin.com)
-* [Pro Version](https://nextjs-demo.tailadmin.com)
+### 4. 🔄 Otorisasi Supervisor (Void & Retur Barang)
+- **Void Faktur Pembatalan**: Memerlukan otorisasi password Supervisor/Admin. Otomatis memulihkan stok fisik, mencatat mutasi masuk, dan mengoreksi poin member.
+- **Retur Barang Pelanggan**: Klasifikasi kondisi barang *Layak Jual (Good)* untuk dikembalikan ke katalog atau *Rusak (Damaged)* untuk dialihkan ke gudang retur, lengkap dengan cetak tanda terima retur.
 
-### Other Versions
+### 5. 💵 Shift Kasir & Manajemen Laci Uang (Z-Report)
+- **Buka Shift (Open Shift)**: Pencatatan modal awal uang tunai laci kasir (*Cash Drawer*) dengan preset chip pecahan cepat.
+- **Kas Kecil Darurat (Petty Cash)**: Pencatatan uang masuk (*Cash In*) dan uang keluar (*Cash Out*) disertai alasan operasional.
+- **Tutup Shift & Z-Report**: Rekonsiliasi hitungan fisik uang aktual vs kalkulasi sistem, deteksi selisih kas (surplus/defisit), dan pencetakan struk thermal Z-Report penutupan shift.
 
-- [Next.js Version](https://github.com/TailAdmin/free-nextjs-admin-dashboard)
-- [React.js Version](https://github.com/TailAdmin/free-react-tailwind-admin-dashboard)
-- [Vue.js Version](https://github.com/TailAdmin/vue-tailwind-admin-dashboard)
-- [Angular Version](https://github.com/TailAdmin/free-angular-tailwind-dashboard)
-- [Laravel Version](https://github.com/TailAdmin/tailadmin-laravel)
+### 6. 🎁 Program Loyalitas Member & Poin Belanja
+- **Pendaftaran Cepat di Kasir**: Input nama dan nomor WhatsApp pelanggan langsung dari pop-up POS.
+- **Reward Poin Otomatis**: Pelanggan memperoleh 1 poin setiap kelipatan belanja Rp 10.000.
+- **Redeem Poin**: Poin dapat langsung ditukarkan sebagai potongan belanja tunai (1 poin = Rp 100).
 
-## Installation
+### 7. 📊 Laporan Finansial & Analitik Bisnis
+- **Ringkasan Finansial**: Omzet Bersih, HPP (COGS), Laba Kotor, Pajak PPN, dan Rata-rata Belanja Keranjang (*Basket Size*).
+- **Grafik Tren Interaktif**: Visualisasi penjualan harian, perbandingan metode pembayaran, dan ranking produk terlaris.
+- **Performa Kasir**: Evaluasi jumlah transaksi dan kontribusi omzet per kasir.
+- **Ekspor Data**: Unduh laporan lengkap dalam format Excel (`.xlsx`), PDF, atau mode Print Layout.
 
-### Prerequisites
+### 8. 🖨️ Desain Struk Thermal Kasir
+- Tampilan struk kasir profesional standar 58mm dan 80mm.
+- Kustomisasi header toko, alamat, nomor telepon, logo, tarif pajak (PPN), dan catatan kaki struk (*Receipt Footer*).
+- Kompatibel dengan printer thermal POS via dialog cetak browser maupun perintah ESC/POS.
 
-To get started with TailAdmin, ensure you have the following prerequisites installed and set up:
+---
 
-* Node.js 18.x or later (recommended to use Node.js 20.x or later)
+## 🛠 Teknologi yang Digunakan
 
-### Cloning the Repository
+| Komponen | Teknologi | Deskripsi |
+|---|---|---|
+| **Frontend Framework** | [Next.js 16](https://nextjs.org/) (App Router) | Server-Side Rendering (SSR), Server Actions, Turbopack |
+| **UI Library & State** | [React 19](https://react.dev/) | Komponen modern, hooks, dan context API |
+| **Styling & Icons** | [Tailwind CSS v4](https://tailwindcss.com/) & [Lucide React](https://lucide.dev/) | Desain antarmuka bersih, responsif, dan Dark Mode native |
+| **Database & ORM** | [MySQL 8](https://www.mysql.com/) & [Drizzle ORM](https://orm.drizzle.team/) | Skema type-safe, migrasi deklaratif, dan performa query tinggi |
+| **Payment Gateway** | [Midtrans](https://midtrans.com/) (Core API & Snap) | Pembayaran QRIS Dinamis dan Virtual Account Bank |
+| **Runtime & Test** | [Bun](https://bun.sh/) | Package manager ultra cepat dan test runner terintegrasi |
+| **Autentikasi & RBAC** | [Jose JWT](https://github.com/panva/jose) & [Bcryptjs](https://github.com/dcodeIO/bcrypt.js) | Enkripsi sesi berbasis HTTP-only cookies & proteksi brute-force |
+| **Laporan & Ekspor** | [SheetJS (xlsx)](https://sheetjs.com/) & [ApexCharts](https://apexcharts.com/) | Pembuatan file spreadsheet Excel & chart visualisasi |
 
-Clone the repository using the following command:
+---
 
+## 📋 Prasyarat Sistem
+
+Sebelum memulai, pastikan perangkat Anda telah terpasang:
+- **Bun** v1.2+ (Direkomendasikan) atau **Node.js** v20.x+
+- **MySQL** v8.0+ atau **MariaDB** v10.5+
+- **Git**
+
+---
+
+## 🚀 Panduan Instalasi & Menjalankan
+
+### 1. Clone Repository
 ```bash
-git clone https://github.com/TailAdmin/free-nextjs-admin-dashboard.git
+git clone https://github.com/dcc-dp/kasirin.git
+cd kasirin
 ```
 
-> Windows Users: place the repository near the root of your drive if you face issues while cloning.
+### 2. Install Dependensi
+```bash
+bun install
+# atau jika menggunakan npm:
+# npm install
+```
 
-1. Install dependencies:
+### 3. Konfigurasi Environment (`.env`)
+Salin file template konfigurasi `.env.example`:
+```bash
+cp .env.example .env
+```
+Buka file `.env` dan sesuaikan parameter koneksi database Anda:
+```env
+DATABASE_URL=mysql://root:password@localhost:3306/db_kasirin
+JWT_SECRET=rahasia_kunci_jwt_kasirin_super_aman_2026
+NEXT_PUBLIC_APP_URL=http://localhost:3000
 
-   ```bash
-   npm install
-   # or
-   yarn install
-   ```
+# Opsional: Midtrans Credentials (bisa juga diatur via menu Pengaturan Admin)
+MIDTRANS_SERVER_KEY=Mid-server-xxxxxxxxxxxx
+MIDTRANS_CLIENT_KEY=Mid-client-xxxxxxxxxxxx
+MIDTRANS_IS_PRODUCTION=false
+```
 
-   > Use `--legacy-peer-deps` flag if you face peer-dependency error during installation.
+### 4. Setup Database & Seeding
+Buat database di MySQL (misal: `CREATE DATABASE db_kasirin;`), lalu jalankan proses seeding data awal:
+```bash
+# Menjalankan migrasi skema tabel dan seed data awal (User, Role, Menu, Produk, Supplier)
+bun run src/db/seed.ts
+```
 
-2. Start the development server:
+### 5. Jalankan Server Development
+```bash
+bun run dev
+```
+Buka browser dan akses antarmuka POS Kasirin di:
+👉 **`http://localhost:3000`**
 
-   ```bash
-   npm run dev
-   # or
-   yarn dev
-   ```
+---
 
-## Components
+## 👤 Akun Default Demo
 
-TailAdmin is a pre-designed starting point for building a web-based dashboard using Next.js and Tailwind CSS. The template includes:
+Sistem dilengkapi data akun awal untuk mempermudah pengujian:
 
-* Sophisticated and accessible sidebar
-* Data visualization components
-* Profile management and custom 404 page
-* Tables and Charts(Line and Bar)
-* Authentication forms and input elements
-* Alerts, Dropdowns, Modals, Buttons and more
-* Can't forget Dark Mode 🕶️
+| Role | Username | Password | Hak Akses Utama |
+|---|---|---|---|
+| **Administrator** | `admin` | `admin123` | Dashboard, Master Produk, Supplier, Pembelian/Restock, Riwayat Transaksi, Otorisasi Void, Rekap Shift, Laporan Keuangan, Pengaturan Toko & Midtrans Gateway. |
+| **Kasir** | `kasir1` | `kasir123` | Layar Kasir POS (`/kasir`), Buka/Tutup Shift Kasir, Cetak Struk, Redeem Member, Kas Kecil (Petty Cash). |
 
-All components are built with React and styled using Tailwind CSS for easy customization.
+---
 
-## Feature Comparison
+## ⌨️ Ergonomi Keyboard Kasir (Hotkeys F1–F8)
 
-### Free Version
+Antarmuka Kasir Kasirin dirancang khusus untuk kecepatan pelayanan antrean kasir:
 
-* 1 Unique Dashboard
-* 30+ dashboard components
-* 50+ UI elements
-* Basic Figma design files
-* Community support
+| Tombol Pintas | Aksi Sistem | Keterangan Operasional |
+|---|---|---|
+| <kbd>F1</kbd> | **Bantuan Shortcut** | Menampilkan pop-up panduan tombol pintas kasir |
+| <kbd>F2</kbd> | **Fokus Scan Barcode / Cari** | Kursor langsung aktif di kolom pencarian produk |
+| <kbd>F3</kbd> | **Pilih / Daftar Member** | Modal pencarian member atau pendaftaran member baru |
+| <kbd>F4</kbd> | **Diskon Transaksi** | Input diskon nota (persentase `%` atau potongan nominal `Rp`) |
+| <kbd>F6</kbd> | **Cari Faktur Lama / Retur** | Pencarian riwayat faktur untuk cetak ulang nota atau proses retur |
+| <kbd>Space</kbd> / <kbd>F8</kbd> | **Buka Pembayaran** | Membuka modal pembayaran checkout |
+| <kbd>1</kbd> / <kbd>2</kbd> / <kbd>3</kbd> | **Pilihan Metode Bayar** | Shortcut modal bayar (`1`: Tunai, `2`: QRIS Midtrans, `3`: Transfer) |
+| <kbd>Enter</kbd> | **Proses Pembayaran** | Finalisasi checkout dan langsung mencetak struk nota |
+| <kbd>+</kbd> / <kbd>-</kbd> | **Atur Kuantitas Item** | Menambah atau mengurangi jumlah kuantitas barang belanjaan |
+| <kbd>Del</kbd> | **Hapus Item** | Menghapus barang yang dipilih dari keranjang belanja |
+| <kbd>Esc</kbd> | **Batal / Tutup** | Menutup modal pop-up yang sedang terbuka |
 
-### Pro Version
+---
 
-* 7 Unique Dashboards: Analytics, Ecommerce, Marketing, CRM, SaaS, Stocks, Logistics (more coming soon)
-* 500+ dashboard components and UI elements
-* Complete Figma design file
-* Email support
+## 💳 Integrasi Payment Gateway Midtrans
 
-To learn more about pro version features and pricing, visit our [pricing page](https://tailadmin.com/pricing).
+Kasirin mendukung pembayaran non-tunai resmi menggunakan **Midtrans Payment Gateway**:
 
-## Changelog
+1. **Pengaturan Kredensial di Admin**:
+   - Buka menu **Pengaturan Toko** (`/admin/settings`) $\rightarrow$ pilih tab **"Midtrans Gateway"**.
+   - Masukkan **Server Key** dan **Client Key** akun Midtrans Anda.
+   - Atur switch mode: **Sandbox (Uji Coba)** atau **Production (Langsung)**.
+   - Klik **"Uji Koneksi Gateway"** untuk memvalidasi kredensial dan mengukur latensi API.
+2. **Pengaturan URL Webhook Notifikasi**:
+   - Pada [Midtrans Merchant Dashboard](https://dashboard.midtrans.com) (menu *Settings* $\rightarrow$ *Configuration*), atur **Payment Notification URL** ke:
+     ```
+     https://domain-anda.com/api/midtrans/webhook
+     ```
+   - Seluruh notifikasi pembayaran yang masuk akan diverifikasi otomatis menggunakan algoritma hash **SHA-512** (`SHA512(order_id + status_code + gross_amount + ServerKey)`).
 
-### Version 2.3.0 - [April 28, 2026]
+---
 
-- **New Feature**: Added **AI Dashboard** with token usage and revenue tracking.
-- **New Feature**: Added **Sales Dashboard** with retention and multi-channel analytics.
-- **New Feature**: Added **Finance Dashboard** with cashflow and balance management.
-- **New Feature**: Introduced **6 New Layout variations** for improved UI flexibility.
-- **Enhancement**: Integrated **Advanced Data Visualization** with 7+ new chart types.
+## 🧪 Pengujian Unit (Unit Testing)
 
-### Version 2.2.3 - [March 15, 2026]
+Aplikasi dilengkapi unit test menyeluruh untuk memastikan keandalan formula finansial, pencegahan transaksi minus, keamanan brute-force, dan validasi signature Midtrans:
 
-* update ESLint configuration and dependencies; upgrade Next.js to version 16.1.6
+```bash
+bun test
+```
 
-### Version 2.2.2 - [December 30, 2025]
+**Cakupan Unit Test (18 Tests Passing):**
+- `tests/financial.test.ts`: Format Rupiah, pembulatan tunai (*cash rounding*), perhitungan PPN, kembalian, HPP (COGS), dan laba kotor.
+- `tests/transaction-integrity.test.ts`: Validasi ACID dan pencegahan stok minus (*Negative Stock Prevention*).
+- `tests/rate-limiter.test.ts`: Proteksi rate-limiting login kasir dan penguncian akun otomatis setelah 5 kali salah password.
+- `tests/midtrans.test.ts`: Validasi signature SHA-512 webhook Midtrans dan keunikan generator Order ID.
 
-* Fixed date picker positioning and functionality in Statistics Chart.
+---
 
+## 🐳 Deployment Menggunakan Docker
 
-### Version 2.1.0 - [November 15, 2025]
+Proyek ini siap dideploy menggunakan container Docker:
 
-* Updated to Next.js 16.x
-* Fixed all reported minor bugs
+```bash
+# Menjalankan aplikasi beserta database MySQL dalam container terisolasi:
+docker compose up -d --build
+```
+Aplikasi akan aktif di `http://localhost:3000` dengan database MySQL yang otomatis terkonfigurasi.
 
-### Version 2.0.2 - [March 25, 2025]
+---
 
-* Upgraded to Next.js 16.x for [CVE-2025-29927](https://nextjs.org/blog/cve-2025-29927) concerns
-* Included overrides vectormap for packages to prevent peer dependency errors during installation.
-* Migrated from react-flatpickr to flatpickr package for React 19 support
+## 📂 Struktur Direktori Proyek
 
-### Version 2.0.1 - [February 27, 2025]
+```text
+kasirin/
+├── docs/                      # Dokumentasi & SOP Kasir Toko
+│   └── SOP_KASIR.md           # Standar Operasional Prosedur Kasir Harian
+├── src/
+│   ├── actions/               # Server Actions (Mutasi DB & Business Logic)
+│   │   ├── auth.ts            # Login, Logout, Session Token
+│   │   ├── member.ts          # CRUD Member & Poin Loyalitas
+│   │   ├── midtrans.ts        # Charge QRIS, Status Check, Snap Token
+│   │   ├── product.ts         # Master Produk, Kategori, Opname Stok
+│   │   ├── purchase.ts        # Restock Pembelian dari Supplier
+│   │   ├── report.ts          # Laporan Keuangan, Omzet, Laba Kotor, Ekspor
+│   │   ├── setting.ts         # Pengaturan Profil Toko & Midtrans
+│   │   ├── shift.ts           # Open/Close Shift Kasir & Petty Cash
+│   │   └── transaction.ts     # Checkout Transaksi, Void & Retur
+│   ├── app/                   # Next.js App Router (Halaman & Layout)
+│   │   ├── (admin)/admin/     # Panel Dashboard Administrator
+│   │   ├── (pos)/kasir/       # Layar Operasional Kasir (POS)
+│   │   ├── api/midtrans/      # Webhook Handler Midtrans
+│   │   └── login/             # Layar Masuk Akun
+│   ├── components/            # Komponen UI Reusable
+│   │   ├── pos/               # Modal Pembayaran, QRIS Barcode, Lookup Nota
+│   │   ├── receipt/           # Layout & Cetak Struk Thermal 58mm/80mm
+│   │   └── transaction/       # Modal Detail, Void Supervisor, Retur Barang
+│   ├── db/                    # Drizzle ORM Schema, Koneksi MySQL, & Seed
+│   │   ├── index.ts           # Connection Pool MySQL
+│   │   ├── schema.ts          # Relasi & Skema Database
+│   │   └── seed.ts            # Seeder Data Awal
+│   └── lib/                   # Library Helper & Core Utilities
+│       ├── audio.ts           # Beep Synthesizer (Web Audio API)
+│       ├── auth.ts            # JWT Cookie & Password Verification
+│       ├── financial.ts       # Format Rupiah, Invoice Generator, Pembulatan
+│       ├── midtrans.ts        # Client Engine Midtrans Core API & Snap
+│       └── rate-limiter.ts    # Proteksi Anti Brute-Force Login
+├── tests/                     # Unit Tests (Bun Test Suite)
+├── docker-compose.yml         # Konfigurasi Multi-Container Docker
+├── Dockerfile                 # Multi-stage Production Build Dockerfile
+└── README.md                  # Dokumentasi Resmi Proyek
+```
 
-#### Update Overview
+---
 
-* Upgraded to Tailwind CSS v4 for better performance and efficiency.
-* Updated class usage to match the latest syntax and features.
-* Replaced deprecated class and optimized styles.
+## 📖 Dokumentasi Operasional
 
-#### Next Steps
+Untuk panduan alur kerja harian kasir toko, silakan baca:
+- 📘 [Buku Panduan Standar Operasional Prosedur (SOP) Kasir Toko](docs/SOP_KASIR.md)
 
-* Run npm install or yarn install to update dependencies.
-* Check for any style changes or compatibility issues.
-* Refer to the Tailwind CSS v4 [Migration Guide](https://tailwindcss.com/docs/upgrade-guide) on this release. if needed.
-* This update keeps the project up to date with the latest Tailwind improvements. 🚀
+---
 
-### v2.0.0 (February 2025)
+## 📄 Lisensi
 
-A major update focused on Next.js 16 implementation and comprehensive redesign.
+Didistribusikan di bawah **Lisensi MIT**. Bebas digunakan dan dikembangkan untuk kebutuhan komersial maupun personal.
 
-#### Major Improvements
-
-* Complete redesign using Next.js 16 App Router and React Server Components
-* Enhanced user interface with Next.js-optimized components
-* Improved responsiveness and accessibility
-* New features including collapsible sidebar, chat screens, and calendar
-* Redesigned authentication using Next.js App Router and server actions
-* Updated data visualization using ApexCharts for React
-
-#### Breaking Changes
-
-* Migrated from Next.js 14 to Next.js 16
-* Chart components now use ApexCharts for React
-* Authentication flow updated to use Server Actions and middleware
-
-[Read more](https://tailadmin.com/docs/update-logs/nextjs) on this release.
-
-### v1.3.4 (July 01, 2024)
-
-* Fixed JSvectormap rendering issues
-
-### v1.3.3 (June 20, 2024)
-
-* Fixed build error related to Loader component
-
-### v1.3.2 (June 19, 2024)
-
-* Added ClickOutside component for dropdown menus
-* Refactored sidebar components
-* Updated Jsvectormap package
-
-### v1.3.1 (Feb 12, 2024)
-
-* Fixed layout naming consistency
-* Updated styles
-
-### v1.3.0 (Feb 05, 2024)
-
-* Upgraded to Next.js 14
-* Added Flatpickr integration
-* Improved form elements
-* Enhanced multiselect functionality
-* Added default layout component
-
-## License
-
-TailAdmin Next.js Free Version is released under the MIT License.
-
-## Support
-If you find this project helpful, please consider giving it a star on GitHub. Your support helps us continue developing and maintaining this template.
+<p align="center">
+  Dibuat dengan ❤️ untuk kemajuan efisiensi bisnis retail dan UMKM Indonesia.
+</p>
