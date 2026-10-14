@@ -11,6 +11,7 @@ import {
   stock_logs,
   members,
   suppliers,
+  store_settings,
 } from "./schema";
 import { hashPassword } from "../lib/auth";
 import { eq, sql } from "drizzle-orm";
@@ -288,6 +289,21 @@ async function main() {
         email: "sales@wingscorp.com",
       },
     ]);
+  }
+
+  // 10. Seed Default Store Settings if empty
+  const existingSettings = await db.select().from(store_settings);
+  if (existingSettings.length === 0) {
+    console.log("Seeding default store settings...");
+    await db.insert(store_settings).values({
+      store_name: "Kasirin Digital Store",
+      address: "Jl. Malioboro No. 45, Yogyakarta",
+      phone: "0812-3456-7890",
+      email: "kontak@kasirin.app",
+      logo: "/images/logo/logo.svg",
+      tax: 11,
+      receipt_footer: "Terima Kasih Telah Berbelanja di Toko Kami!",
+    });
   }
 
   console.log("Seeding complete!");

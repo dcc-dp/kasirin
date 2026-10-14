@@ -142,11 +142,18 @@ MIDTRANS_IS_PRODUCTION=false
 ```
 
 ### 4. Setup Database & Seeding
-Buat database di MySQL (misal: `CREATE DATABASE db_kasirin;`), lalu jalankan proses seeding data awal:
-```bash
-# Menjalankan migrasi skema tabel dan seed data awal (User, Role, Menu, Produk, Supplier)
-bun run src/db/seed.ts
-```
+1. Buat database baru di MySQL (misal via MySQL CLI / phpMyAdmin):
+   ```sql
+   CREATE DATABASE db_kasirin;
+   ```
+2. Jalankan pembuatan skema tabel (*push schema*) dan pengisian data awal (*seeding*):
+   ```bash
+   # Membuat seluruh struktur tabel ke database MySQL
+   bun run db:push
+
+   # Mengisi data awal (User Admin, Kasir, Menu, Role Permissions, Sampel Produk & Supplier)
+   bun run db:seed
+   ```
 
 ### 5. Jalankan Server Development
 ```bash
@@ -159,12 +166,12 @@ Buka browser dan akses antarmuka POS Kasirin di:
 
 ## 👤 Akun Default Demo
 
-Sistem dilengkapi data akun awal untuk mempermudah pengujian:
+Sistem dilengkapi data akun awal bawaan hasil *seeding* untuk pengujian langsung:
 
 | Role | Username | Password | Hak Akses Utama |
 |---|---|---|---|
-| **Administrator** | `admin` | `admin123` | Dashboard, Master Produk, Supplier, Pembelian/Restock, Riwayat Transaksi, Otorisasi Void, Rekap Shift, Laporan Keuangan, Pengaturan Toko & Midtrans Gateway. |
-| **Kasir** | `kasir1` | `kasir123` | Layar Kasir POS (`/kasir`), Buka/Tutup Shift Kasir, Cetak Struk, Redeem Member, Kas Kecil (Petty Cash). |
+| **Administrator** | `admin` | `password123` | Dashboard, Master Produk, Supplier, Pembelian/Restock, Riwayat Transaksi, Otorisasi Void, Rekap Shift, Laporan Keuangan, Pengaturan Toko & Midtrans Gateway. |
+| **Kasir** | `kasir1` | `password123` | Layar Kasir POS (`/kasir`), Buka/Tutup Shift Kasir, Cetak Struk, Redeem Member, Kas Kecil (Petty Cash). |
 
 ---
 
